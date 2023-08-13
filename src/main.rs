@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::Parser;
 use std::fs;
 use std::io::{BufRead, Write};
@@ -13,15 +14,18 @@ fn main() {
     let cli = Cli::parse();
     match cli.filename {
         None => {
-            run_prompt();
+            let _ = run_prompt(); // ignore this result
         }
         Some(filename) => {
-            run_file(filename);
+            if let Err(e) = run_file(filename) {
+                eprintln!("{}", e);
+                std::process::exit(1);
+            }
         }
     }
 }
 
-fn run_prompt() {
+fn run_prompt() -> Result<()> {
     let mut buf = String::new();
     loop {
         print!("> ");
@@ -29,21 +33,29 @@ fn run_prompt() {
         buf.clear();
 
         match std::io::stdin().lock().read_line(&mut buf) {
-            Ok(n) if n > 0 => run(&buf),
+            Ok(n) if n > 0 => {
+                if let Err(e) = run(&buf) {
+                    eprintln!("{}", e);
+                }
+            }
             Err(e) => {
                 panic!("{}", e);
             }
             _ => break, // otherwise break.
         }
     }
+
+    Ok(())
 }
 
-fn run_file(filepath: PathBuf) {
+fn run_file(filepath: PathBuf) -> Result<()> {
     println!("The filename is {:?}", filepath);
     let contents = fs::read_to_string(filepath).expect("reading file failed.");
-    run(&contents); // eval contents.
+    run(&contents) // eval contents.
 }
 
-fn run(source: &str) {
+fn run(source: &str) -> Result<()> {
     println!("{}", source);
+
+    Ok(())
 }
