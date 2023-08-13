@@ -70,6 +70,25 @@ impl ToString for Token {
 struct Scanner {
     source: String,
     tokens: Vec<Token>,
+    start: usize,
+    current: usize,
+    line: usize,
+}
+
+impl Scanner {
+    fn new(source: &str) -> Self {
+        Scanner {
+            source: source.to_string(),
+            tokens: Vec::new(),
+            start: 0,
+            current: 0,
+            line: 1,
+        }
+    }
+
+    fn scan_tokens(&self) {
+        todo!()
+    }
 }
 
 #[cfg(test)]
