@@ -160,3 +160,25 @@ fn test_identifier_tokens() {
     ];
     assert_eq!(scanner.tokens.take(), result);
 }
+
+#[test]
+fn test_reserved_tokens() {
+    use TokenType::*;
+    let scanner = Scanner::new("class//asdfjlasdjf");
+    scanner.scan_tokens().unwrap();
+    let result = &[
+        Token {
+            token_type: CLASS,
+            lexeme: "class".to_string(),
+            literal: None,
+            line: 1,
+        },
+        Token {
+            token_type: EOF,
+            lexeme: "".to_string(),
+            literal: None,
+            line: 1,
+        },
+    ];
+    assert_eq!(scanner.tokens.take(), result);
+}

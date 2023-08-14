@@ -1,8 +1,11 @@
 #[cfg(test)]
 mod tests;
 
+#[macro_use]
+extern crate lazy_static;
 use anyhow::Result;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum TokenType {
@@ -50,6 +53,27 @@ enum TokenType {
     WHILE,
 
     EOF,
+}
+
+lazy_static! {
+    static ref MAP: HashMap<&'static str, TokenType> = HashMap::from([
+        ("and", TokenType::AND),
+        ("class", TokenType::CLASS),
+        ("else", TokenType::ELSE),
+        ("false", TokenType::FALSE),
+        ("for", TokenType::FOR),
+        ("fun", TokenType::FUN),
+        ("if", TokenType::IF),
+        ("nil", TokenType::NIL),
+        ("or", TokenType::OR),
+        ("print", TokenType::PRINT),
+        ("return", TokenType::RETURN),
+        ("super", TokenType::SUPER),
+        ("this", TokenType::THIS),
+        ("true", TokenType::TRUE),
+        ("var", TokenType::VAR),
+        ("while", TokenType::WHILE),
+    ]);
 }
 
 fn error(line: usize, msg: &str) {
@@ -219,8 +243,13 @@ impl Scanner {
         while Self::is_alpha_underline_num(self.peek(0)) {
             self.advance();
         }
+        let text = self.get_current_value();
+        let value_type = match MAP.get(text) {
+            Some(t) => *t,
+            None => TokenType::IDENTIFIER,
+        };
 
-        self.add_token(TokenType::IDENTIFIER)
+        self.add_token(value_type)
     }
 
     fn get_current_value(&self) -> &str {
