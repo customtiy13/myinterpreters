@@ -64,13 +64,13 @@ fn report(line: usize, info: &str, msg: &str) {
 struct Token {
     token_type: TokenType,
     lexeme: String,
-    literal: String, // TODO
+    literal: Option<String>, // TODO
     line: usize,
 }
 
 impl ToString for Token {
     fn to_string(&self) -> String {
-        format!("{:?} {} {}", self.token_type, self.lexeme, self.literal)
+        format!("{:?} {} {:?}", self.token_type, self.lexeme, self.literal)
     }
 }
 
@@ -102,7 +102,7 @@ impl Scanner {
         self.tokens.borrow_mut().push(Token {
             token_type: TokenType::EOF,
             lexeme: "".to_string(),
-            literal: "".to_string(),
+            literal: None,
             line: *self.line.borrow(),
         }); //todo
         Ok(())
@@ -166,15 +166,20 @@ impl Scanner {
             }
             '\n' => *self.line.borrow_mut() += 1,
             '"' => self.deal_string(),
+            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => self.deal_number(),
 
-            _ => todo!(),
+            _ => {
+                if Self::is_alpha_underline(self.peek(0)) {
+                    self.deal_identifier();
+                }
+            }
         }
         Ok(())
     }
 
     fn deal_string(&self) {
-        while self.peek() != '"' && !self.is_end() {
-            if self.peek() == '\n' {
+        while self.peek(0) != '"' && !self.is_end() {
+            if self.peek(0) == '\n' {
                 *self.line.borrow_mut() += 1;
             }
             self.advance();
@@ -189,7 +194,49 @@ impl Scanner {
 
         // trim quotes.
         let value = &self.source[*self.start.borrow() + 1..*self.current.borrow() - 1];
+
         self.add_literal_token(TokenType::STRING, value);
+    }
+
+    fn deal_number(&self) {
+        while Self::is_digit(self.peek(0)) {
+            self.advance();
+        }
+        // fractional part.
+        if self.peek(0) == '.' && Self::is_digit(self.peek(1)) {
+            // consume the "."
+            self.advance();
+            while Self::is_digit(self.peek(0)) {
+                self.advance();
+            }
+        }
+
+        let value = self.get_current_value();
+        self.add_literal_token(TokenType::NUMBER, value)
+    }
+
+    fn deal_identifier(&self) {
+        while Self::is_alpha_underline_num(self.peek(0)) {
+            self.advance();
+        }
+
+        self.add_token(TokenType::IDENTIFIER)
+    }
+
+    fn get_current_value(&self) -> &str {
+        &self.source[*self.start.borrow()..*self.current.borrow()]
+    }
+
+    fn is_digit(c: char) -> bool {
+        c >= '0' && c <= '9'
+    }
+
+    fn is_alpha_underline(c: char) -> bool {
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+    }
+
+    fn is_alpha_underline_num(c: char) -> bool {
+        Self::is_alpha_underline(c) || Self::is_digit(c)
     }
 
     fn is_match(&self, expected: char) -> bool {
@@ -207,25 +254,32 @@ impl Scanner {
         return true;
     }
 
-    fn peek(&self) -> char {
-        if self.is_end() {
+    fn peek(&self, offset: usize) -> char {
+        let nth = *self.current.borrow() + offset;
+        if self.is_end() || nth >= self.source.len() {
             return '\0';
         }
-        return self.source.chars().nth(*self.current.borrow()).unwrap();
+        return self.source.chars().nth(nth).unwrap();
     }
 
     fn add_literal_token(&self, token_type: TokenType, literal: &str) {
-        let text = self.source[*self.start.borrow()..*self.current.borrow()].to_string();
+        let text = self.get_current_value();
         self.tokens.borrow_mut().push(Token {
             token_type,
-            lexeme: text,
-            literal: literal.to_string(), // TODO
+            lexeme: text.to_string(),
+            literal: Some(literal.to_string()), // TODO
             line: *self.line.borrow(),
         })
     }
 
     fn add_token(&self, token_type: TokenType) {
-        self.add_literal_token(token_type, "")
+        let text = self.get_current_value();
+        self.tokens.borrow_mut().push(Token {
+            token_type,
+            lexeme: text.to_string(),
+            literal: None,
+            line: *self.line.borrow(),
+        })
     }
 
     fn advance(&self) -> char {
