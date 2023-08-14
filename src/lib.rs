@@ -2,6 +2,7 @@
 mod tests;
 
 use anyhow::Result;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum TokenType {
@@ -75,39 +76,39 @@ impl ToString for Token {
 
 struct Scanner {
     source: String,
-    tokens: Vec<Token>,
-    start: usize,
-    current: usize,
-    line: usize,
+    tokens: RefCell<Vec<Token>>,
+    start: RefCell<usize>,
+    current: RefCell<usize>,
+    line: RefCell<usize>,
 }
 
 impl Scanner {
     fn new(source: &str) -> Self {
         Scanner {
             source: source.to_string(),
-            tokens: Vec::new(),
-            start: 0,
-            current: 0,
-            line: 1,
+            tokens: Vec::new().into(),
+            start: 0.into(),
+            current: 0.into(),
+            line: 1.into(),
         }
     }
 
-    fn scan_tokens(&mut self) -> Result<&[Token]> {
+    fn scan_tokens(&self) -> Result<()> {
         while !self.is_end() {
-            self.start = self.current;
+            *self.start.borrow_mut() = *self.current.borrow();
             self.scan_token()?;
         }
 
-        self.tokens.push(Token {
+        self.tokens.borrow_mut().push(Token {
             token_type: TokenType::EOF,
             lexeme: "".to_string(),
             literal: "".to_string(),
-            line: self.line,
+            line: *self.line.borrow(),
         }); //todo
-        Ok(&self.tokens)
+        Ok(())
     }
 
-    fn scan_token(&mut self) -> Result<()> {
+    fn scan_token(&self) -> Result<()> {
         let c: char = self.advance();
         use TokenType::*;
         match c {
@@ -145,44 +146,95 @@ impl Scanner {
                 };
                 self.add_token(token);
             }
+            '/' => {
+                if self.is_match('/') {
+                    // comments
+                    let iter = self.source.chars();
+                    for c in iter {
+                        if c == '\n' || self.is_end() {
+                            break;
+                        }
+                        self.advance();
+                    }
+                } else {
+                    // slash
+                    self.add_token(SLASH);
+                }
+            }
+            ' ' | '\r' | '\t' => {
+                // ignore
+            }
+            '\n' => *self.line.borrow_mut() += 1,
+            '"' => self.deal_string(),
 
             _ => todo!(),
         }
         Ok(())
     }
 
-    fn is_match(&mut self, expected: char) -> bool {
+    fn deal_string(&self) {
+        while self.peek() != '"' && !self.is_end() {
+            if self.peek() == '\n' {
+                *self.line.borrow_mut() += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_end() {
+            todo!();
+        }
+
+        // The '"'
+        self.advance();
+
+        // trim quotes.
+        let value = &self.source[*self.start.borrow() + 1..*self.current.borrow() - 1];
+        self.add_literal_token(TokenType::STRING, value);
+    }
+
+    fn is_match(&self, expected: char) -> bool {
         if self.is_end() {
             return false;
         }
 
-        let current_char = self.source.chars().nth(self.current).unwrap();
+        let current_char = self.source.chars().nth(*self.current.borrow()).unwrap();
         if current_char != expected {
             return false;
         }
 
         // ok
-        self.current += 1;
+        *self.current.borrow_mut() += 1; // maybe TODO. not update current??
         return true;
     }
 
-    fn add_token(&mut self, token_type: TokenType) {
-        let text = self.source[self.start..self.current].to_string();
-        self.tokens.push(Token {
+    fn peek(&self) -> char {
+        if self.is_end() {
+            return '\0';
+        }
+        return self.source.chars().nth(*self.current.borrow()).unwrap();
+    }
+
+    fn add_literal_token(&self, token_type: TokenType, literal: &str) {
+        let text = self.source[*self.start.borrow()..*self.current.borrow()].to_string();
+        self.tokens.borrow_mut().push(Token {
             token_type,
             lexeme: text,
-            literal: "".to_string(), // TODO
-            line: self.line,
+            literal: literal.to_string(), // TODO
+            line: *self.line.borrow(),
         })
     }
 
-    fn advance(&mut self) -> char {
-        let current_char = self.source.chars().nth(self.current).unwrap();
-        self.current += 1;
+    fn add_token(&self, token_type: TokenType) {
+        self.add_literal_token(token_type, "")
+    }
+
+    fn advance(&self) -> char {
+        let current_char = self.source.chars().nth(*self.current.borrow()).unwrap();
+        *self.current.borrow_mut() += 1;
         current_char
     }
 
     fn is_end(&self) -> bool {
-        self.current >= self.source.len()
+        *self.current.borrow() >= self.source.len()
     }
 }
