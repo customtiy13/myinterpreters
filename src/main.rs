@@ -59,7 +59,8 @@ fn run_file(filepath: PathBuf) -> Result<()> {
 fn run(source: &str) -> Result<()> {
     let scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
-    let parser = MyParser::new(tokens);
+    println!("{:#?}", &tokens);
+    let parser = MyParser::new(&tokens);
     let expr = parser.parse();
 
     println!("{:#?}", expr);

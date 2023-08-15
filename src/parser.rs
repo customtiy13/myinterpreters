@@ -17,34 +17,22 @@ impl std::fmt::Display for MyError {
 
 impl std::error::Error for MyError {}
 
-pub trait Expr: std::fmt::Debug {}
+//pub trait Expr: std::fmt::Debug {}
 
-#[derive(Debug)]
-struct Binary {
-    left: Box<dyn Expr>,
-    op: Token,
-    right: Box<dyn Expr>,
+#[derive(Debug, PartialEq)]
+pub enum Expr {
+    Binary {
+        left: Box<Expr>,
+        op: Token,
+        right: Box<Expr>,
+    },
+    Literal(Option<String>),
+    Unary {
+        op: Token,
+        right: Box<Expr>,
+    },
+    Grouping(Box<Expr>),
 }
-
-#[derive(Debug)]
-struct Literal {
-    text: Option<String>,
-}
-
-#[derive(Debug)]
-struct Unary {
-    op: Token,
-    right: Box<dyn Expr>,
-}
-
-#[derive(Debug)]
-struct Grouping {
-    expr: Box<dyn Expr>,
-}
-impl Expr for Binary {}
-impl Expr for Unary {}
-impl Expr for Grouping {}
-impl Expr for Literal {}
 
 /*
 expression     → equality ;
@@ -63,7 +51,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self {
+    pub fn new(tokens: &[Token]) -> Self {
         Parser {
             tokens: tokens.into(),
             current: 0.into(),
@@ -71,22 +59,22 @@ impl Parser {
     }
 
     // TODO, catch error.
-    pub fn parse(&self) -> Box<dyn Expr> {
+    pub fn parse(&self) -> Expr {
         self.expression()
     }
 
-    fn expression(&self) -> Box<dyn Expr> {
+    fn expression(&self) -> Expr {
         self.equality()
     }
 
-    fn equality(&self) -> Box<dyn Expr> {
+    fn equality(&self) -> Expr {
         self.binary_builder(
             &[TokenType::BangEqual, TokenType::EqualEqual],
             Self::comparsion,
         )
     }
 
-    fn comparsion(&self) -> Box<dyn Expr> {
+    fn comparsion(&self) -> Expr {
         self.binary_builder(
             &[
                 TokenType::GREATER,
@@ -98,43 +86,35 @@ impl Parser {
         )
     }
 
-    fn term(&self) -> Box<dyn Expr> {
+    fn term(&self) -> Expr {
         self.binary_builder(&[TokenType::MINUS, TokenType::PLUS], Self::factor)
     }
 
-    fn factor(&self) -> Box<dyn Expr> {
+    fn factor(&self) -> Expr {
         self.binary_builder(&[TokenType::SLASH, TokenType::STAR], Self::unary)
     }
 
-    fn unary(&self) -> Box<dyn Expr> {
+    fn unary(&self) -> Expr {
         if self.is_match(&[TokenType::BANG, TokenType::MINUS]) {
             let operator = self.previous();
             let right = self.unary();
-            return Box::new(Unary {
+            return Expr::Unary {
                 op: operator.clone(),
-                right,
-            });
+                right: Box::new(right),
+            };
         }
 
         self.primary()
     }
 
-    fn primary(&self) -> Box<dyn Expr> {
+    fn primary(&self) -> Expr {
         let operator = self.peek(0);
         self.advance();
         match operator.token_type {
-            TokenType::FALSE => Box::new(Literal {
-                text: Some("false".into()),
-            }),
-            TokenType::TRUE => Box::new(Literal {
-                text: Some("true".into()),
-            }),
-            TokenType::NIL => Box::new(Literal {
-                text: Some("null".into()),
-            }),
-            TokenType::NUMBER | TokenType::STRING => Box::new(Literal {
-                text: self.previous().literal.clone(),
-            }),
+            TokenType::FALSE => Expr::Literal(Some("false".into())),
+            TokenType::TRUE => Expr::Literal(Some("true".into())),
+            TokenType::NIL => Expr::Literal(Some("null".into())),
+            TokenType::NUMBER | TokenType::STRING => Expr::Literal(self.previous().literal.clone()),
             TokenType::LeftParen => {
                 let expr = self.expression();
                 if let Err(e) = self.consume(TokenType::RightParen, "Expect ')' after expression.")
@@ -142,7 +122,7 @@ impl Parser {
                     self.error(self.peek(0), &e.to_string());
                     panic!();
                 }
-                Box::new(Grouping { expr })
+                Expr::Grouping(Box::new(expr))
             }
             _ => {
                 self.error(self.peek(0), "Expected expression.");
@@ -160,19 +140,19 @@ impl Parser {
         Err(MyError::ParseError(msg.into()).into())
     }
 
-    fn binary_builder<F>(&self, t: &[TokenType], op_method: F) -> Box<dyn Expr>
+    fn binary_builder<F>(&self, t: &[TokenType], op_method: F) -> Expr
     where
-        F: Fn(&Self) -> Box<dyn Expr>,
+        F: Fn(&Self) -> Expr,
     {
         let mut expr = op_method(self);
         while self.is_match(t) {
             let operator = self.previous();
             let right = op_method(self);
-            expr = Box::new(Binary {
-                left: expr,
+            expr = Expr::Binary {
+                left: Box::new(expr),
                 op: operator.clone(),
-                right,
-            })
+                right: Box::new(right),
+            }
         }
 
         expr

@@ -1,4 +1,5 @@
 use super::*;
+use crate::parser::Expr;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::tokens::{Token, TokenType};
@@ -188,20 +189,45 @@ fn test_reserved_tokens() {
 
 #[test]
 fn test_parser_primary() {
+    use Expr::*;
     use TokenType::*;
-    let tokens = [
+    let tokens = &[
         Token {
-            token_type: FALSE,
-            lexeme: "false".to_string(),
+            token_type: NUMBER,
+            lexeme: "3".to_string(),
+            literal: Some("3".to_string()),
+            line: 1,
+        },
+        Token {
+            token_type: PLUS,
+            lexeme: "+".to_string(),
             literal: None,
+            line: 1,
+        },
+        Token {
+            token_type: NUMBER,
+            lexeme: "4".to_string(),
+            literal: Some("4".to_string()),
             line: 1,
         },
         Token {
             token_type: EOF,
             lexeme: "".to_string(),
             literal: None,
-            line: 1,
+            line: 2,
         },
     ];
-    let parser = Parser::new(tokens.into());
+    let expected = Binary {
+        left: Box::new(Literal(Some("3".to_string()))),
+        op: Token {
+            token_type: PLUS,
+            lexeme: "+".to_string(),
+            literal: None,
+            line: 1,
+        },
+        right: Box::new(Literal(Some("4".to_string()))),
+    };
+    let parser = Parser::new(tokens);
+    let result = parser.parse();
+    assert_eq!(result, expected);
 }
