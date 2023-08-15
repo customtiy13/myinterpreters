@@ -4,6 +4,7 @@ mod tests;
 #[macro_use]
 extern crate lazy_static;
 use anyhow::Result;
+use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -84,7 +85,7 @@ fn report(line: usize, info: &str, msg: &str) {
     println!("[line {}] Error {}: {}", line, info, msg);
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct Token {
     token_type: TokenType,
     lexeme: String,
@@ -319,5 +320,223 @@ impl Scanner {
 
     fn is_end(&self) -> bool {
         *self.current.borrow() >= self.source.len()
+    }
+}
+
+trait Expr {}
+
+struct Binary {
+    left: Box<dyn Expr>,
+    op: Token,
+    right: Box<dyn Expr>,
+}
+
+struct Literal {
+    text: Option<String>,
+}
+
+struct Unary {
+    op: Token,
+    right: Box<dyn Expr>,
+}
+
+struct Grouping {
+    expr: Box<dyn Expr>,
+}
+impl Expr for Binary {}
+impl Expr for Unary {}
+impl Expr for Grouping {}
+impl Expr for Literal {}
+
+/*
+expression     → equality ;
+equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+term           → factor ( ( "-" | "+" ) factor )* ;
+factor         → unary ( ( "/" | "*" ) unary )* ;
+unary          → ( "!" | "-" ) unary
+               | primary ;
+primary        → NUMBER | STRING | "true" | "false" | "nil"
+               | "(" expression ")" ;
+ */
+struct Parser {
+    tokens: Vec<Token>,
+    current: RefCell<usize>,
+}
+
+impl Parser {
+    fn new(tokens: Vec<Token>) -> Self {
+        Parser {
+            tokens: tokens.into(),
+            current: 0.into(),
+        }
+    }
+
+    fn expression(&self) -> Box<dyn Expr> {
+        self.equality()
+    }
+
+    fn equality(&self) -> Box<dyn Expr> {
+        let mut expr = self.comparsion();
+
+        while self.is_match(&[TokenType::BangEqual, TokenType::EqualEqual]) {
+            let operator = self.previous();
+            let right = self.comparsion();
+            expr = Box::new(Binary {
+                left: expr,
+                op: operator.clone(),
+                right,
+            });
+        }
+
+        expr
+    }
+
+    fn comparsion(&self) -> Box<dyn Expr> {
+        let mut expr = self.term();
+        while self.is_match(&[
+            TokenType::GREATER,
+            TokenType::GreaterEqual,
+            TokenType::LESS,
+            TokenType::LessEqual,
+        ]) {
+            let operator = self.previous();
+            let right = self.term();
+            expr = Box::new(Binary {
+                left: expr,
+                op: operator.clone(),
+                right,
+            });
+        }
+
+        expr
+    }
+
+    fn term(&self) -> Box<dyn Expr> {
+        let mut expr = self.factor();
+
+        while self.is_match(&[TokenType::MINUS, TokenType::PLUS]) {
+            let operator = self.previous();
+            let right = self.factor();
+            expr = Box::new(Binary {
+                left: expr,
+                op: operator.clone(),
+                right,
+            });
+        }
+
+        expr
+    }
+
+    fn factor(&self) -> Box<dyn Expr> {
+        let mut expr = self.unary();
+
+        while self.is_match(&[TokenType::SLASH, TokenType::STAR]) {
+            let operator = self.previous();
+            let right = self.unary();
+            expr = Box::new(Binary {
+                left: expr,
+                op: operator.clone(),
+                right,
+            });
+        }
+        expr
+    }
+
+    fn unary(&self) -> Box<dyn Expr> {
+        if self.is_match(&[TokenType::BANG, TokenType::MINUS]) {
+            let operator = self.previous();
+            let right = self.unary();
+            return Box::new(Unary {
+                op: operator.clone(),
+                right,
+            });
+        }
+
+        self.primary()
+    }
+
+    fn primary(&self) -> Box<dyn Expr> {
+        let operator = self.peek(0);
+        self.advance();
+        match operator.token_type {
+            TokenType::FALSE => Box::new(Literal {
+                text: Some("false".into()),
+            }),
+            TokenType::TRUE => Box::new(Literal {
+                text: Some("true".into()),
+            }),
+            TokenType::NIL => Box::new(Literal {
+                text: Some("null".into()),
+            }),
+            TokenType::NUMBER | TokenType::STRING => Box::new(Literal {
+                text: self.previous().literal.clone(),
+            }),
+            TokenType::LeftParen => {
+                let expr = self.expression();
+                //TODO consume
+                Box::new(Grouping { expr })
+            }
+            _ => panic!(),
+        }
+    }
+
+    //TODO
+    //fn helper<F>(&self, t: &[TokenType], op_method: F) -> impl Expression
+    //where
+    //F: Fn() -> impl Expression,
+    //{
+    //let mut expr = op_method();
+
+    //match t {
+    //&[TokenType::MMINUS, TokenType::PLUS] => {
+    //Binary{
+    //left: expr,
+    //op:
+    //}
+    //}
+    //}
+    //}
+
+    fn previous(&self) -> &Token {
+        //TODO ugly
+        let nth = *self.current.borrow() - 1;
+        self.tokens.get(nth).unwrap()
+    }
+
+    fn is_match(&self, types: &[TokenType]) -> bool {
+        for t in types {
+            if self.check(t) {
+                self.advance();
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn advance(&self) -> &Token {
+        if !self.is_end() {
+            *self.current.borrow_mut() += 1;
+        }
+
+        self.tokens.get(*self.current.borrow()).unwrap()
+    }
+
+    fn check(&self, t: &TokenType) -> bool {
+        if self.is_end() {
+            return false;
+        }
+
+        return self.peek(0).token_type == *t;
+    }
+
+    fn is_end(&self) -> bool {
+        *self.current.borrow() >= self.tokens.len()
+    }
+
+    fn peek(&self, offset: usize) -> &Token {
+        let nth = *self.current.borrow() + offset;
+        self.tokens.get(nth).unwrap()
     }
 }
