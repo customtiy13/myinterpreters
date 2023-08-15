@@ -1,4 +1,7 @@
 use super::*;
+use crate::parser::Parser;
+use crate::scanner::Scanner;
+use crate::tokens::{Token, TokenType};
 
 #[test]
 fn test_token_to_str() {
@@ -15,8 +18,8 @@ fn test_token_to_str() {
 fn test_add_single_token() {
     use TokenType::*;
     let scanner = Scanner::new("(*");
-    scanner.scan_tokens().unwrap();
-    let result = &[
+    let result = scanner.scan_tokens().unwrap();
+    let expected = &[
         Token {
             token_type: LeftParen,
             lexeme: "(".to_string(),
@@ -36,15 +39,15 @@ fn test_add_single_token() {
             line: 1,
         },
     ];
-    assert_eq!(scanner.tokens.take(), result);
+    assert_eq!(result, expected);
 }
 
 #[test]
 fn test_add_two_tokens() {
     use TokenType::*;
     let scanner = Scanner::new("!=");
-    scanner.scan_tokens().unwrap();
-    let result = &[
+    let result = scanner.scan_tokens().unwrap();
+    let expected = &[
         Token {
             token_type: BangEqual,
             lexeme: "!=".to_string(),
@@ -58,15 +61,15 @@ fn test_add_two_tokens() {
             line: 1,
         },
     ];
-    assert_eq!(scanner.tokens.take(), result);
+    assert_eq!(result, expected);
 }
 
 #[test]
 fn test_comments_tokens() {
     use TokenType::*;
     let scanner = Scanner::new("!=/(//klasjdlfkjasldkfaslkjdf()");
-    scanner.scan_tokens().unwrap();
-    let result = &[
+    let result = scanner.scan_tokens().unwrap();
+    let expected = &[
         Token {
             token_type: BangEqual,
             lexeme: "!=".to_string(),
@@ -92,15 +95,15 @@ fn test_comments_tokens() {
             line: 1,
         },
     ];
-    assert_eq!(scanner.tokens.take(), result);
+    assert_eq!(result, expected);
 }
 
 #[test]
 fn test_string_literal_tokens() {
     use TokenType::*;
     let scanner = Scanner::new("\"asdf\"");
-    scanner.scan_tokens().unwrap();
-    let result = &[
+    let result = scanner.scan_tokens().unwrap();
+    let expected = &[
         Token {
             token_type: STRING,
             lexeme: "\"asdf\"".to_string(),
@@ -114,15 +117,15 @@ fn test_string_literal_tokens() {
             line: 1,
         },
     ];
-    assert_eq!(scanner.tokens.take(), result);
+    assert_eq!(result, expected);
 }
 
 #[test]
 fn test_number_tokens() {
     use TokenType::*;
     let scanner = Scanner::new("123.53//asdf");
-    scanner.scan_tokens().unwrap();
-    let result = &[
+    let result = scanner.scan_tokens().unwrap();
+    let expected = &[
         Token {
             token_type: NUMBER,
             lexeme: "123.53".to_string(),
@@ -136,15 +139,15 @@ fn test_number_tokens() {
             line: 1,
         },
     ];
-    assert_eq!(scanner.tokens.take(), result);
+    assert_eq!(result, expected);
 }
 
 #[test]
 fn test_identifier_tokens() {
     use TokenType::*;
     let scanner = Scanner::new("asdf98");
-    scanner.scan_tokens().unwrap();
-    let result = &[
+    let result = scanner.scan_tokens().unwrap();
+    let expected = &[
         Token {
             token_type: IDENTIFIER,
             lexeme: "asdf98".to_string(),
@@ -158,15 +161,15 @@ fn test_identifier_tokens() {
             line: 1,
         },
     ];
-    assert_eq!(scanner.tokens.take(), result);
+    assert_eq!(result, expected);
 }
 
 #[test]
 fn test_reserved_tokens() {
     use TokenType::*;
     let scanner = Scanner::new("class//asdfjlasdjf");
-    scanner.scan_tokens().unwrap();
-    let result = &[
+    let result = scanner.scan_tokens().unwrap();
+    let expected = &[
         Token {
             token_type: CLASS,
             lexeme: "class".to_string(),
@@ -180,7 +183,7 @@ fn test_reserved_tokens() {
             line: 1,
         },
     ];
-    assert_eq!(scanner.tokens.take(), result);
+    assert_eq!(result, expected);
 }
 
 #[test]
@@ -201,5 +204,4 @@ fn test_parser_primary() {
         },
     ];
     let parser = Parser::new(tokens.into());
-    let result = parser.primary();
 }

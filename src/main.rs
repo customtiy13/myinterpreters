@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use myjlox::{Parser as MyParser, Scanner};
+use myjlox::parser::Parser as MyParser;
+use myjlox::scanner::Scanner;
 use std::fs;
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
@@ -61,7 +62,7 @@ fn run(source: &str) -> Result<()> {
     let parser = MyParser::new(tokens);
     let expr = parser.parse();
 
-    println!("{:?}", expr);
+    println!("{:#?}", expr);
 
     Ok(())
 }
