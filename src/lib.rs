@@ -56,6 +56,21 @@ enum TokenType {
     EOF,
 }
 
+#[derive(Debug)]
+enum MyError {
+    ParseError(String),
+}
+
+impl std::fmt::Display for MyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            MyError::ParseError(ref err) => write!(f, "Parsing error occurred {:?}", err),
+        }
+    }
+}
+
+impl std::error::Error for MyError {}
+
 lazy_static! {
     static ref MAP: HashMap<&'static str, TokenType> = HashMap::from([
         ("and", TokenType::AND),
@@ -435,11 +450,23 @@ impl Parser {
             }),
             TokenType::LeftParen => {
                 let expr = self.expression();
-                self.consume(TokenType::RightParen, "Expect ')' after expression.");
+                if let Err(e) = self.consume(TokenType::RightParen, "Expect ')' after expression.")
+                {
+                    self.error(self.peek(0), &e.to_string());
+                    panic!();
+                }
                 Box::new(Grouping { expr })
             }
             _ => panic!(),
         }
+    }
+
+    fn consume(&self, t: TokenType, msg: &str) -> Result<()> {
+        if self.check(&t) {
+            self.advance();
+        }
+
+        Err(MyError::ParseError(msg.into()).into())
     }
 
     fn binary_builder<F>(&self, t: &[TokenType], op_method: F) -> Box<dyn Expr>
@@ -500,5 +527,16 @@ impl Parser {
     fn peek(&self, offset: usize) -> &Token {
         let nth = *self.current.borrow() + offset;
         self.tokens.get(nth).unwrap()
+    }
+
+    fn error(&self, t: &Token, msg: &str) {
+        match t.token_type {
+            TokenType::EOF => self.report(t.line, "at end", msg),
+            _ => self.report(t.line, &format!("{}{}", " at ", t.lexeme), msg),
+        }
+    }
+
+    fn report(&self, line: usize, info: &str, msg: &str) {
+        println!("[line {}] Error {}: {}", line, info, msg);
     }
 }
