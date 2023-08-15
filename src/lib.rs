@@ -331,6 +331,7 @@ struct Binary {
     right: Box<dyn Expr>,
 }
 
+#[derive(Debug)]
 struct Literal {
     text: Option<String>,
 }
@@ -377,70 +378,30 @@ impl Parser {
     }
 
     fn equality(&self) -> Box<dyn Expr> {
-        let mut expr = self.comparsion();
-
-        while self.is_match(&[TokenType::BangEqual, TokenType::EqualEqual]) {
-            let operator = self.previous();
-            let right = self.comparsion();
-            expr = Box::new(Binary {
-                left: expr,
-                op: operator.clone(),
-                right,
-            });
-        }
-
-        expr
+        self.binary_builder(
+            &[TokenType::BangEqual, TokenType::EqualEqual],
+            Self::comparsion,
+        )
     }
 
     fn comparsion(&self) -> Box<dyn Expr> {
-        let mut expr = self.term();
-        while self.is_match(&[
-            TokenType::GREATER,
-            TokenType::GreaterEqual,
-            TokenType::LESS,
-            TokenType::LessEqual,
-        ]) {
-            let operator = self.previous();
-            let right = self.term();
-            expr = Box::new(Binary {
-                left: expr,
-                op: operator.clone(),
-                right,
-            });
-        }
-
-        expr
+        self.binary_builder(
+            &[
+                TokenType::GREATER,
+                TokenType::GreaterEqual,
+                TokenType::LESS,
+                TokenType::LessEqual,
+            ],
+            Self::term,
+        )
     }
 
     fn term(&self) -> Box<dyn Expr> {
-        let mut expr = self.factor();
-
-        while self.is_match(&[TokenType::MINUS, TokenType::PLUS]) {
-            let operator = self.previous();
-            let right = self.factor();
-            expr = Box::new(Binary {
-                left: expr,
-                op: operator.clone(),
-                right,
-            });
-        }
-
-        expr
+        self.binary_builder(&[TokenType::MINUS, TokenType::PLUS], Self::factor)
     }
 
     fn factor(&self) -> Box<dyn Expr> {
-        let mut expr = self.unary();
-
-        while self.is_match(&[TokenType::SLASH, TokenType::STAR]) {
-            let operator = self.previous();
-            let right = self.unary();
-            expr = Box::new(Binary {
-                left: expr,
-                op: operator.clone(),
-                right,
-            });
-        }
-        expr
+        self.binary_builder(&[TokenType::SLASH, TokenType::STAR], Self::unary)
     }
 
     fn unary(&self) -> Box<dyn Expr> {
@@ -474,29 +435,30 @@ impl Parser {
             }),
             TokenType::LeftParen => {
                 let expr = self.expression();
-                //TODO consume
+                self.consume(TokenType::RightParen, "Expect ')' after expression.");
                 Box::new(Grouping { expr })
             }
             _ => panic!(),
         }
     }
 
-    //TODO
-    //fn helper<F>(&self, t: &[TokenType], op_method: F) -> impl Expression
-    //where
-    //F: Fn() -> impl Expression,
-    //{
-    //let mut expr = op_method();
+    fn binary_builder<F>(&self, t: &[TokenType], op_method: F) -> Box<dyn Expr>
+    where
+        F: Fn(&Self) -> Box<dyn Expr>,
+    {
+        let mut expr = op_method(self);
+        while self.is_match(t) {
+            let operator = self.previous();
+            let right = op_method(self);
+            expr = Box::new(Binary {
+                left: expr,
+                op: operator.clone(),
+                right,
+            })
+        }
 
-    //match t {
-    //&[TokenType::MMINUS, TokenType::PLUS] => {
-    //Binary{
-    //left: expr,
-    //op:
-    //}
-    //}
-    //}
-    //}
+        expr
+    }
 
     fn previous(&self) -> &Token {
         //TODO ugly
