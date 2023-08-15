@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
+use myjlox::{Parser as MyParser, Scanner};
 use std::fs;
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
@@ -55,7 +56,12 @@ fn run_file(filepath: PathBuf) -> Result<()> {
 }
 
 fn run(source: &str) -> Result<()> {
-    println!("{}", source);
+    let scanner = Scanner::new(source);
+    let tokens = scanner.scan_tokens()?;
+    let parser = MyParser::new(tokens);
+    let expr = parser.parse();
+
+    println!("{:?}", expr);
 
     Ok(())
 }

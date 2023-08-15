@@ -182,3 +182,24 @@ fn test_reserved_tokens() {
     ];
     assert_eq!(scanner.tokens.take(), result);
 }
+
+#[test]
+fn test_parser_primary() {
+    use TokenType::*;
+    let tokens = [
+        Token {
+            token_type: FALSE,
+            lexeme: "false".to_string(),
+            literal: None,
+            line: 1,
+        },
+        Token {
+            token_type: EOF,
+            lexeme: "".to_string(),
+            literal: None,
+            line: 1,
+        },
+    ];
+    let parser = Parser::new(tokens.into());
+    let result = parser.primary();
+}

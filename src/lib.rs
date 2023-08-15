@@ -101,7 +101,7 @@ fn report(line: usize, info: &str, msg: &str) {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct Token {
+pub struct Token {
     token_type: TokenType,
     lexeme: String,
     literal: Option<String>, // TODO
@@ -114,7 +114,7 @@ impl ToString for Token {
     }
 }
 
-struct Scanner {
+pub struct Scanner {
     source: String,
     tokens: RefCell<Vec<Token>>,
     start: RefCell<usize>,
@@ -123,7 +123,7 @@ struct Scanner {
 }
 
 impl Scanner {
-    fn new(source: &str) -> Self {
+    pub fn new(source: &str) -> Self {
         Scanner {
             source: source.to_string(),
             tokens: Vec::new().into(),
@@ -133,7 +133,7 @@ impl Scanner {
         }
     }
 
-    fn scan_tokens(&self) -> Result<()> {
+    pub fn scan_tokens(&self) -> Result<Vec<Token>> {
         while !self.is_end() {
             *self.start.borrow_mut() = *self.current.borrow();
             self.scan_token()?;
@@ -145,7 +145,7 @@ impl Scanner {
             literal: None,
             line: *self.line.borrow(),
         }); //todo
-        Ok(())
+        Ok(self.tokens.borrow().clone())
     }
 
     fn scan_token(&self) -> Result<()> {
@@ -338,8 +338,9 @@ impl Scanner {
     }
 }
 
-trait Expr {}
+pub trait Expr: std::fmt::Debug {}
 
+#[derive(Debug)]
 struct Binary {
     left: Box<dyn Expr>,
     op: Token,
@@ -351,11 +352,13 @@ struct Literal {
     text: Option<String>,
 }
 
+#[derive(Debug)]
 struct Unary {
     op: Token,
     right: Box<dyn Expr>,
 }
 
+#[derive(Debug)]
 struct Grouping {
     expr: Box<dyn Expr>,
 }
@@ -375,17 +378,22 @@ unary          → ( "!" | "-" ) unary
 primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" ;
  */
-struct Parser {
-    tokens: Vec<Token>,
+pub struct Parser {
+    pub tokens: Vec<Token>,
     current: RefCell<usize>,
 }
 
 impl Parser {
-    fn new(tokens: Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token>) -> Self {
         Parser {
             tokens: tokens.into(),
             current: 0.into(),
         }
+    }
+
+    // TODO, catch error.
+    pub fn parse(&self) -> Box<dyn Expr> {
+        self.expression()
     }
 
     fn expression(&self) -> Box<dyn Expr> {
@@ -457,13 +465,17 @@ impl Parser {
                 }
                 Box::new(Grouping { expr })
             }
-            _ => panic!(),
+            _ => {
+                self.error(self.peek(0), "Expected expression.");
+                panic!();
+            }
         }
     }
 
     fn consume(&self, t: TokenType, msg: &str) -> Result<()> {
         if self.check(&t) {
             self.advance();
+            return Ok(());
         }
 
         Err(MyError::ParseError(msg.into()).into())
@@ -538,5 +550,31 @@ impl Parser {
 
     fn report(&self, line: usize, info: &str, msg: &str) {
         println!("[line {}] Error {}: {}", line, info, msg);
+    }
+
+    fn synchronize(&self) {
+        self.advance();
+
+        while !self.is_end() {
+            if self.previous().token_type == TokenType::SEMICOLON {
+                return;
+            }
+
+            match self.peek(0).token_type {
+                TokenType::CLASS
+                | TokenType::FUN
+                | TokenType::VAR
+                | TokenType::FOR
+                | TokenType::IF
+                | TokenType::WHILE
+                | TokenType::PRINT
+                | TokenType::RETURN => return,
+                _ => {
+                    // do nothing
+                }
+            }
+
+            self.advance();
+        }
     }
 }
