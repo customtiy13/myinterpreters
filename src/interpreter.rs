@@ -1,5 +1,6 @@
 use crate::errors::MyError;
 use crate::expr::Expr;
+use crate::stmt::Stmt;
 use crate::tokens::{TokenType, Type};
 use anyhow::Result;
 pub struct Interpreter {}
@@ -8,13 +9,36 @@ impl Interpreter {
     pub fn new() -> Self {
         Interpreter {}
     }
-    pub fn evaluate(&self, expr: &Expr) -> Result<Type> {
+
+    pub fn interpret(&self, stmts: &[Stmt]) -> Result<()> {
+        for stmt in stmts {
+            self.evaluate_stmt(stmt)?;
+        }
+
+        Ok(())
+    }
+
+    fn evaluate_stmt(&self, stmt: &Stmt) -> Result<()> {
+        match stmt {
+            Stmt::ExprStmt(expr) => {
+                self.evaluate_expr(expr)?;
+            }
+            Stmt::PrintStmt(expr) => {
+                let value = self.evaluate_expr(expr)?;
+                println!("{}", value);
+            }
+        };
+
+        Ok(())
+    }
+
+    pub fn evaluate_expr(&self, expr: &Expr) -> Result<Type> {
         use Expr::*;
         match expr {
             Literal(value) => Ok(value.clone()),
             Binary { left, op, right } => {
-                let left = self.evaluate(left)?;
-                let right = self.evaluate(right)?;
+                let left = self.evaluate_expr(left)?;
+                let right = self.evaluate_expr(right)?;
                 match op.token_type {
                     // a bit ugly. refactor this.
                     TokenType::MINUS
@@ -68,9 +92,9 @@ impl Interpreter {
                     }
                 }
             }
-            Grouping(expr) => self.evaluate(expr),
+            Grouping(expr) => self.evaluate_expr(expr),
             Unary { op, right } => {
-                let right = self.evaluate(right)?;
+                let right = self.evaluate_expr(right)?;
                 match op.token_type {
                     TokenType::BANG => Ok(Type::Bool(!self.is_truthy(&right))),
                     TokenType::MINUS => {

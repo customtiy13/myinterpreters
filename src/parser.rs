@@ -1,10 +1,16 @@
 use crate::errors::MyError;
 use crate::expr::Expr;
+use crate::stmt::Stmt;
 use crate::tokens::{Token, TokenType, Type};
 use anyhow::Result;
 use std::cell::RefCell;
 
 /*
+program        → statement* EOF ;
+statement      → exprStmt
+               | printStmt ;
+exprStmt       → expression ";" ;
+printStmt      → "print" expression ";" ;
 expression     → equality ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -28,9 +34,39 @@ impl Parser {
         }
     }
 
-    // TODO, catch error.
-    pub fn parse(&self) -> Expr {
-        self.expression()
+    pub fn parse(&self) -> Vec<Stmt> {
+        let mut statements = Vec::new();
+        while !self.is_end() {
+            statements.push(self.statement());
+        }
+
+        statements
+    }
+
+    fn statement(&self) -> Stmt {
+        if self.is_match(&[TokenType::PRINT]) {
+            return self.print_stmt();
+        }
+
+        self.expr_stmt()
+    }
+
+    fn print_stmt(&self) -> Stmt {
+        let value = self.expression();
+        if let Err(e) = self.consume(TokenType::SEMICOLON, "Expect ';' after value") {
+            panic!("print stmt failed.");
+        }
+
+        Stmt::PrintStmt(value)
+    }
+
+    fn expr_stmt(&self) -> Stmt {
+        let expr = self.expression();
+        if let Err(e) = self.consume(TokenType::SEMICOLON, "Expect ';' after value") {
+            panic!("expr stmt failed.");
+        }
+
+        Stmt::ExprStmt(expr)
     }
 
     fn expression(&self) -> Expr {
@@ -162,7 +198,7 @@ impl Parser {
     }
 
     fn is_end(&self) -> bool {
-        self.peek(0).token_type == TokenType::EOF
+        self.peek(0).token_type == TokenType::EOF || *self.current.borrow() >= self.tokens.len() - 1
     }
 
     fn peek(&self, offset: usize) -> &Token {

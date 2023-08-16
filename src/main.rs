@@ -3,6 +3,7 @@ mod expr;
 mod interpreter;
 mod parser;
 mod scanner;
+mod stmt;
 #[cfg(test)]
 mod tests;
 mod tokens;
@@ -74,12 +75,10 @@ fn run(source: &str) -> Result<()> {
     println!("{:#?}", &tokens);
 
     let parser = MyParser::new(&tokens);
-    let expr = parser.parse();
-    println!("{:#?}", expr);
+    let stmts = parser.parse();
 
     let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(&expr)?;
-    println!("{}", result);
+    interpreter.interpret(&stmts)?;
 
     Ok(())
 }

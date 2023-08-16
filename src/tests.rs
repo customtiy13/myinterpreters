@@ -2,6 +2,7 @@ use crate::expr::Expr;
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
+use crate::stmt::Stmt;
 use crate::tokens::{Token, TokenType, Type};
 use anyhow::Result;
 
@@ -212,13 +213,19 @@ fn test_parser_primary() {
             line: 1,
         },
         Token {
+            token_type: SEMICOLON,
+            lexeme: ";".to_string(),
+            literal: Type::Nil,
+            line: 1,
+        },
+        Token {
             token_type: EOF,
             lexeme: "".to_string(),
             literal: Type::Nil,
             line: 2,
         },
     ];
-    let expected = Binary {
+    let expected = vec![Stmt::ExprStmt(Binary {
         left: Box::new(Literal(Type::Number("3".parse::<f64>().unwrap()))),
         op: Token {
             token_type: PLUS,
@@ -227,7 +234,7 @@ fn test_parser_primary() {
             line: 1,
         },
         right: Box::new(Literal(Type::Number("4".parse::<f64>().unwrap()))),
-    };
+    })];
     let parser = Parser::new(tokens);
     let result = parser.parse();
     assert_eq!(result, expected);
@@ -240,7 +247,7 @@ fn test_evalute_literal() -> Result<()> {
     let expected = Type::Number("3".parse::<f64>().unwrap());
 
     let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(&expr)?;
+    let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
     Ok(())
@@ -263,7 +270,7 @@ fn test_evalute_unary() -> Result<()> {
     let expected = Type::Number("-3".parse::<f64>().unwrap());
 
     let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(&expr)?;
+    let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
     Ok(())
@@ -287,7 +294,7 @@ fn test_evalute_grouping() -> Result<()> {
     let expected = Type::Number("4.0".parse::<f64>().unwrap());
 
     let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(&expr)?;
+    let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
     Ok(())
@@ -320,7 +327,7 @@ fn test_evalute_binary_1() -> Result<()> {
     let expected = Type::Number("3.0".parse::<f64>().unwrap());
 
     let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(&expr)?;
+    let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
     Ok(())
@@ -344,7 +351,7 @@ fn test_evalute_binary_2() -> Result<()> {
     let expected = Type::Bool(true);
 
     let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(&expr)?;
+    let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
     Ok(())
@@ -368,7 +375,7 @@ fn test_evalute_binary_3() -> Result<()> {
     let expected = Type::Number(2.0);
 
     let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(&expr)?;
+    let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
     Ok(())
@@ -392,7 +399,7 @@ fn test_evalute_binary_4() -> Result<()> {
     let expected = Type::String("asdf123".to_string());
 
     let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(&expr)?;
+    let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
     Ok(())
