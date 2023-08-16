@@ -3,6 +3,7 @@ pub enum MyError {
     ParseError(String),
     CastError(String),
     DividedbyzeroError,
+    NotImplementedError,
 }
 
 impl std::fmt::Display for MyError {
@@ -11,6 +12,7 @@ impl std::fmt::Display for MyError {
             MyError::ParseError(ref err) => write!(f, "Parsing error occurred {:?}", err),
             MyError::CastError(ref err) => write!(f, "Casting error occurred {:?}", err),
             MyError::DividedbyzeroError => write!(f, "Divided by zero Error occurred"),
+            MyError::NotImplementedError => write!(f, "Not implemented Error occurred"),
         }
     }
 }

@@ -190,7 +190,7 @@ fn test_reserved_tokens() {
 }
 
 #[test]
-fn test_parser_primary() {
+fn test_parser_primary() -> Result<()> {
     use Expr::*;
     use TokenType::*;
     let tokens = &[
@@ -236,8 +236,10 @@ fn test_parser_primary() {
         right: Box::new(Literal(Type::Number("4".parse::<f64>().unwrap()))),
     })];
     let parser = Parser::new(tokens);
-    let result = parser.parse();
+    let result = parser.parse()?;
     assert_eq!(result, expected);
+
+    Ok(())
 }
 
 #[test]

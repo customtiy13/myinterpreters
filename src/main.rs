@@ -75,7 +75,7 @@ fn run(source: &str) -> Result<()> {
     println!("{:#?}", &tokens);
 
     let parser = MyParser::new(&tokens);
-    let stmts = parser.parse();
+    let stmts = parser.parse()?;
 
     let interpreter = Interpreter::new();
     interpreter.interpret(&stmts)?;

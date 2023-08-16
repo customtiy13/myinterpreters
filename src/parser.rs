@@ -34,16 +34,16 @@ impl Parser {
         }
     }
 
-    pub fn parse(&self) -> Vec<Stmt> {
+    pub fn parse(&self) -> Result<Vec<Stmt>> {
         let mut statements = Vec::new();
         while !self.is_end() {
-            statements.push(self.statement());
+            statements.push(self.statement()?);
         }
 
-        statements
+        Ok(statements)
     }
 
-    fn statement(&self) -> Stmt {
+    fn statement(&self) -> Result<Stmt> {
         if self.is_match(&[TokenType::PRINT]) {
             return self.print_stmt();
         }
@@ -51,36 +51,32 @@ impl Parser {
         self.expr_stmt()
     }
 
-    fn print_stmt(&self) -> Stmt {
-        let value = self.expression();
-        if let Err(e) = self.consume(TokenType::SEMICOLON, "Expect ';' after value") {
-            panic!("print stmt failed.");
-        }
+    fn print_stmt(&self) -> Result<Stmt> {
+        let value = self.expression()?;
+        self.consume(TokenType::SEMICOLON, "Expect ';' after value")?;
 
-        Stmt::PrintStmt(value)
+        Ok(Stmt::PrintStmt(value))
     }
 
-    fn expr_stmt(&self) -> Stmt {
-        let expr = self.expression();
-        if let Err(e) = self.consume(TokenType::SEMICOLON, "Expect ';' after value") {
-            panic!("expr stmt failed.");
-        }
+    fn expr_stmt(&self) -> Result<Stmt> {
+        let expr = self.expression()?;
+        self.consume(TokenType::SEMICOLON, "Expect ';' after value")?;
 
-        Stmt::ExprStmt(expr)
+        Ok(Stmt::ExprStmt(expr))
     }
 
-    fn expression(&self) -> Expr {
+    fn expression(&self) -> Result<Expr> {
         self.equality()
     }
 
-    fn equality(&self) -> Expr {
+    fn equality(&self) -> Result<Expr> {
         self.binary_builder(
             &[TokenType::BangEqual, TokenType::EqualEqual],
             Self::comparsion,
         )
     }
 
-    fn comparsion(&self) -> Expr {
+    fn comparsion(&self) -> Result<Expr> {
         self.binary_builder(
             &[
                 TokenType::GREATER,
@@ -92,47 +88,45 @@ impl Parser {
         )
     }
 
-    fn term(&self) -> Expr {
+    fn term(&self) -> Result<Expr> {
         self.binary_builder(&[TokenType::MINUS, TokenType::PLUS], Self::factor)
     }
 
-    fn factor(&self) -> Expr {
+    fn factor(&self) -> Result<Expr> {
         self.binary_builder(&[TokenType::SLASH, TokenType::STAR], Self::unary)
     }
 
-    fn unary(&self) -> Expr {
+    fn unary(&self) -> Result<Expr> {
         if self.is_match(&[TokenType::BANG, TokenType::MINUS]) {
             let operator = self.previous();
-            let right = self.unary();
-            return Expr::Unary {
+            let right = self.unary()?;
+            return Ok(Expr::Unary {
                 op: operator.clone(),
                 right: Box::new(right),
-            };
+            });
         }
 
         self.primary()
     }
 
-    fn primary(&self) -> Expr {
+    fn primary(&self) -> Result<Expr> {
         let operator = self.peek(0);
         self.advance();
         match operator.token_type {
-            TokenType::FALSE => Expr::Literal(Type::Bool(false)),
-            TokenType::TRUE => Expr::Literal(Type::Bool(true)),
-            TokenType::NIL => Expr::Literal(Type::Nil),
-            TokenType::NUMBER | TokenType::STRING => Expr::Literal(self.previous().literal.clone()),
+            TokenType::FALSE => Ok(Expr::Literal(Type::Bool(false))),
+            TokenType::TRUE => Ok(Expr::Literal(Type::Bool(true))),
+            TokenType::NIL => Ok(Expr::Literal(Type::Nil)),
+            TokenType::NUMBER | TokenType::STRING => {
+                Ok(Expr::Literal(self.previous().literal.clone()))
+            }
             TokenType::LeftParen => {
-                let expr = self.expression();
-                if let Err(e) = self.consume(TokenType::RightParen, "Expect ')' after expression.")
-                {
-                    self.error(self.peek(0), &e.to_string());
-                    panic!();
-                }
-                Expr::Grouping(Box::new(expr))
+                let expr = self.expression()?;
+                self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
+                Ok(Expr::Grouping(Box::new(expr)))
             }
             _ => {
                 self.error(self.peek(0), "Expected expression.");
-                panic!();
+                Err(MyError::NotImplementedError.into())
             }
         }
     }
@@ -146,14 +140,14 @@ impl Parser {
         Err(MyError::ParseError(msg.into()).into())
     }
 
-    fn binary_builder<F>(&self, t: &[TokenType], op_method: F) -> Expr
+    fn binary_builder<F>(&self, t: &[TokenType], op_method: F) -> Result<Expr>
     where
-        F: Fn(&Self) -> Expr,
+        F: Fn(&Self) -> Result<Expr>,
     {
-        let mut expr = op_method(self);
+        let mut expr = op_method(self)?;
         while self.is_match(t) {
             let operator = self.previous();
-            let right = op_method(self);
+            let right = op_method(self)?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 op: operator.clone(),
@@ -161,7 +155,7 @@ impl Parser {
             }
         }
 
-        expr
+        Ok(expr)
     }
 
     fn previous(&self) -> &Token {
