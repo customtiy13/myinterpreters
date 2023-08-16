@@ -119,7 +119,7 @@ impl Scanner {
             '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => self.deal_number(),
 
             _ => {
-                if Self::is_alpha_underline(self.peek(0)) {
+                if Self::is_alpha_underline(self.previous()) {
                     self.deal_identifier();
                 }
             }
@@ -211,6 +211,14 @@ impl Scanner {
 
     fn peek(&self, offset: usize) -> char {
         let nth = *self.current.borrow() + offset;
+        if self.is_end() || nth >= self.source.len() {
+            return '\0';
+        }
+        return self.source.chars().nth(nth).unwrap();
+    }
+
+    fn previous(&self) -> char {
+        let nth = *self.current.borrow() - 1;
         if self.is_end() || nth >= self.source.len() {
             return '\0';
         }
