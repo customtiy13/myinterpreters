@@ -1,4 +1,4 @@
-use crate::tokens::{Token, TokenType};
+use crate::tokens::{Token, TokenType, Type};
 use anyhow::Result;
 use std::cell::RefCell;
 
@@ -26,12 +26,18 @@ pub enum Expr {
         op: Token,
         right: Box<Expr>,
     },
-    Literal(Option<String>),
+    Literal(Type),
     Unary {
         op: Token,
         right: Box<Expr>,
     },
     Grouping(Box<Expr>),
+}
+
+impl Expr {
+    fn evaluate(expr: Expr) {
+        use Expr::*;
+    }
 }
 
 /*
@@ -111,9 +117,9 @@ impl Parser {
         let operator = self.peek(0);
         self.advance();
         match operator.token_type {
-            TokenType::FALSE => Expr::Literal(Some("false".into())),
-            TokenType::TRUE => Expr::Literal(Some("true".into())),
-            TokenType::NIL => Expr::Literal(Some("null".into())),
+            TokenType::FALSE => Expr::Literal(Type::Bool(false)),
+            TokenType::TRUE => Expr::Literal(Type::Bool(true)),
+            TokenType::NIL => Expr::Literal(Type::Nil),
             TokenType::NUMBER | TokenType::STRING => Expr::Literal(self.previous().literal.clone()),
             TokenType::LeftParen => {
                 let expr = self.expression();

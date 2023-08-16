@@ -1,4 +1,4 @@
-use crate::tokens::{Token, TokenType};
+use crate::tokens::{Token, TokenType, Type};
 use anyhow::Result;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -52,7 +52,7 @@ impl Scanner {
         self.tokens.borrow_mut().push(Token {
             token_type: TokenType::EOF,
             lexeme: "".to_string(),
-            literal: None,
+            literal: Type::Nil,
             line: *self.line.borrow(),
         }); //todo
         Ok(self.tokens.borrow().clone())
@@ -219,10 +219,19 @@ impl Scanner {
 
     fn add_literal_token(&self, token_type: TokenType, literal: &str) {
         let text = self.get_current_value();
+        let literal = match token_type {
+            TokenType::STRING => Type::String(literal.to_string()),
+            TokenType::NUMBER => Type::Number(literal.parse::<f64>().unwrap()),
+            TokenType::TRUE | TokenType::FALSE => Type::Bool(literal.parse::<bool>().unwrap()),
+            TokenType::NIL => Type::Nil,
+            _ => {
+                Type::Any(Box::new(Type::String(literal.to_string()))) // TODO
+            }
+        };
         self.tokens.borrow_mut().push(Token {
             token_type,
             lexeme: text.to_string(),
-            literal: Some(literal.to_string()), // TODO
+            literal,
             line: *self.line.borrow(),
         })
     }
@@ -232,7 +241,7 @@ impl Scanner {
         self.tokens.borrow_mut().push(Token {
             token_type,
             lexeme: text.to_string(),
-            literal: None,
+            literal: Type::Nil,
             line: *self.line.borrow(),
         })
     }

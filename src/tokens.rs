@@ -1,3 +1,12 @@
+#[derive(Debug, PartialEq, Clone)]
+pub enum Type {
+    Any(Box<Type>),
+    Nil,
+    Bool(bool),
+    Number(f64),
+    String(String),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
     // Single-char tokens.
@@ -50,7 +59,7 @@ pub enum TokenType {
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Option<String>, // TODO
+    pub literal: Type, // TODO
     pub line: usize,
 }
 
