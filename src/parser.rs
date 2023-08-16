@@ -162,7 +162,7 @@ impl Parser {
     }
 
     fn is_end(&self) -> bool {
-        *self.current.borrow() >= self.tokens.len()
+        self.peek(0).token_type == TokenType::EOF
     }
 
     fn peek(&self, offset: usize) -> &Token {
