@@ -27,6 +27,7 @@ impl Interpreter {
                 let value = self.evaluate_expr(expr)?;
                 println!("{}", value);
             }
+            Stmt::VarStmt { name, initializer } => {}
         };
 
         Ok(())

@@ -59,6 +59,7 @@ impl Scanner {
     }
 
     fn scan_token(&self) -> Result<()> {
+        //BUG TODO IDENTIFIER
         let c: char = self.advance();
         use TokenType::*;
         match c {

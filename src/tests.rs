@@ -264,7 +264,7 @@ fn test_evalute_unary() -> Result<()> {
         op: Token {
             token_type: MINUS,
             lexeme: "-".to_string(),
-            literal: Nil,
+            literal: Type::Nil,
             line: 1,
         },
         right: Box::new(Literal(Number(3.0))),
@@ -288,7 +288,7 @@ fn test_evalute_grouping() -> Result<()> {
         op: Token {
             token_type: PLUS,
             lexeme: "+".to_string(),
-            literal: Nil,
+            literal: Type::Nil,
             line: 1,
         },
         right: Box::new(Literal(Number(3.0))),
@@ -313,7 +313,7 @@ fn test_evalute_binary_1() -> Result<()> {
             op: Token {
                 token_type: PLUS,
                 lexeme: "+".to_string(),
-                literal: Nil,
+                literal: Type::Nil,
                 line: 1,
             },
             right: Box::new(Literal(Number(5.0))),
@@ -321,7 +321,7 @@ fn test_evalute_binary_1() -> Result<()> {
         op: Token {
             token_type: MINUS,
             lexeme: "-".to_string(),
-            literal: Nil,
+            literal: Type::Nil,
             line: 1,
         },
         right: Box::new(Literal(Number(5.0))),
@@ -345,7 +345,7 @@ fn test_evalute_binary_2() -> Result<()> {
         op: Token {
             token_type: GREATER,
             lexeme: ">".to_string(),
-            literal: Nil,
+            literal: Type::Nil,
             line: 1,
         },
         right: Box::new(Literal(Number(3.0))),
@@ -369,7 +369,7 @@ fn test_evalute_binary_3() -> Result<()> {
         op: Token {
             token_type: SLASH,
             lexeme: "/".to_string(),
-            literal: Nil,
+            literal: Type::Nil,
             line: 1,
         },
         right: Box::new(Literal(Number(3.0))),
@@ -393,7 +393,7 @@ fn test_evalute_binary_4() -> Result<()> {
         op: Token {
             token_type: PLUS,
             lexeme: "+".to_string(),
-            literal: Nil,
+            literal: Type::Nil,
             line: 1,
         },
         right: Box::new(Literal(String("123".to_string()))),

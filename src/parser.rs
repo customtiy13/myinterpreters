@@ -6,7 +6,10 @@ use anyhow::Result;
 use std::cell::RefCell;
 
 /*
-program        → statement* EOF ;
+program        → declaration* EOF ;
+declaration    -> varDecl
+               | statement;
+varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 statement      → exprStmt
                | printStmt ;
 exprStmt       → expression ";" ;
@@ -20,6 +23,7 @@ unary          → ( "!" | "-" ) unary
                | primary ;
 primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" ;
+               | IDENTIFIER
  */
 pub struct Parser {
     pub tokens: Vec<Token>,
@@ -37,10 +41,44 @@ impl Parser {
     pub fn parse(&self) -> Result<Vec<Stmt>> {
         let mut statements = Vec::new();
         while !self.is_end() {
-            statements.push(self.statement()?);
+            statements.push(self.declaration()?);
         }
 
         Ok(statements)
+    }
+
+    fn declaration(&self) -> Result<Stmt> {
+        if self.is_match(&[TokenType::VAR]) {
+            match self.var_declaration() {
+                Err(e) => {
+                    //self.synchronize();
+                    return Err(e);
+                }
+                Ok(v) => {
+                    return Ok(v);
+                }
+            }
+        } else {
+            self.statement()
+        }
+    }
+
+    fn var_declaration(&self) -> Result<Stmt> {
+        let name = self.consume(TokenType::IDENTIFIER, "Expected variable name.")?;
+        let mut initializer = Expr::Null;
+        if self.is_match(&[TokenType::EQUAL]) {
+            initializer = self.expression()?;
+        }
+
+        self.consume(
+            TokenType::SEMICOLON,
+            "Expected ';' after variable declaration.",
+        )?;
+
+        Ok(Stmt::VarStmt {
+            name: name.clone(),
+            initializer,
+        })
     }
 
     fn statement(&self) -> Result<Stmt> {
@@ -124,6 +162,7 @@ impl Parser {
                 self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
                 Ok(Expr::Grouping(Box::new(expr)))
             }
+            TokenType::IDENTIFIER => Ok(Expr::Var(self.previous().clone())),
             _ => {
                 self.error(self.peek(0), "Expected expression.");
                 Err(MyError::NotImplementedError.into())
@@ -131,10 +170,11 @@ impl Parser {
         }
     }
 
-    fn consume(&self, t: TokenType, msg: &str) -> Result<()> {
+    fn consume(&self, t: TokenType, msg: &str) -> Result<&Token> {
         if self.check(&t) {
+            let current = self.peek(0);
             self.advance();
-            return Ok(());
+            return Ok(current);
         }
 
         Err(MyError::ParseError(msg.into()).into())

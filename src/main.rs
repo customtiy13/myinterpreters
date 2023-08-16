@@ -72,10 +72,11 @@ fn run_file(filepath: PathBuf) -> Result<()> {
 fn run(source: &str) -> Result<()> {
     let scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
-    println!("{:#?}", &tokens);
+    //println!("{:#?}", &tokens);
 
     let parser = MyParser::new(&tokens);
     let stmts = parser.parse()?;
+    println!("{:#?}", stmts);
 
     let interpreter = Interpreter::new();
     interpreter.interpret(&stmts)?;

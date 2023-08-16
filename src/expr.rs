@@ -13,6 +13,8 @@ pub enum Expr {
         right: Box<Expr>,
     },
     Grouping(Box<Expr>),
+    Var(Token),
+    Null,
 }
 
 impl std::fmt::Display for Expr {
@@ -33,6 +35,8 @@ impl std::fmt::Display for Expr {
                     let right = expr_helper(right);
                     format!("{left}{op_str}{right}")
                 }
+                Var(token) => format!("{}", token.lexeme.clone()),
+                Null => format!(""),
             }
         }
 
