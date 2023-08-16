@@ -1,44 +1,8 @@
+use crate::errors::MyError;
+use crate::expr::Expr;
 use crate::tokens::{Token, TokenType, Type};
 use anyhow::Result;
 use std::cell::RefCell;
-
-#[derive(Debug)]
-enum MyError {
-    ParseError(String),
-}
-
-impl std::fmt::Display for MyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            MyError::ParseError(ref err) => write!(f, "Parsing error occurred {:?}", err),
-        }
-    }
-}
-
-impl std::error::Error for MyError {}
-
-//pub trait Expr: std::fmt::Debug {}
-
-#[derive(Debug, PartialEq)]
-pub enum Expr {
-    Binary {
-        left: Box<Expr>,
-        op: Token,
-        right: Box<Expr>,
-    },
-    Literal(Type),
-    Unary {
-        op: Token,
-        right: Box<Expr>,
-    },
-    Grouping(Box<Expr>),
-}
-
-impl Expr {
-    fn evaluate(expr: Expr) {
-        use Expr::*;
-    }
-}
 
 /*
 expression     → equality ;

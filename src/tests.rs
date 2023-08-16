@@ -1,7 +1,9 @@
-use crate::parser::Expr;
+use crate::expr::Expr;
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::tokens::{Token, TokenType, Type};
+use anyhow::Result;
 
 #[test]
 fn test_token_to_str() {
@@ -229,4 +231,169 @@ fn test_parser_primary() {
     let parser = Parser::new(tokens);
     let result = parser.parse();
     assert_eq!(result, expected);
+}
+
+#[test]
+fn test_evalute_literal() -> Result<()> {
+    use Expr::*;
+    let expr = Literal(Type::Number("3".parse::<f64>().unwrap()));
+    let expected = Type::Number("3".parse::<f64>().unwrap());
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.evaluate(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_evalute_unary() -> Result<()> {
+    use Expr::*;
+    use TokenType::*;
+    use Type::*;
+    let expr = Unary {
+        op: Token {
+            token_type: MINUS,
+            lexeme: "-".to_string(),
+            literal: Nil,
+            line: 1,
+        },
+        right: Box::new(Literal(Number(3.0))),
+    };
+    let expected = Type::Number("-3".parse::<f64>().unwrap());
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.evaluate(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_evalute_grouping() -> Result<()> {
+    use Expr::*;
+    use TokenType::*;
+    use Type::*;
+    let expr = Grouping(Box::new(Binary {
+        left: Box::new(Literal(Number(1.0))),
+        op: Token {
+            token_type: PLUS,
+            lexeme: "+".to_string(),
+            literal: Nil,
+            line: 1,
+        },
+        right: Box::new(Literal(Number(3.0))),
+    }));
+    let expected = Type::Number("4.0".parse::<f64>().unwrap());
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.evaluate(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_evalute_binary_1() -> Result<()> {
+    use Expr::*;
+    use TokenType::*;
+    use Type::*;
+    let expr = Binary {
+        left: Box::new(Grouping(Box::new(Binary {
+            left: Box::new(Literal(Number(3.0))),
+            op: Token {
+                token_type: PLUS,
+                lexeme: "+".to_string(),
+                literal: Nil,
+                line: 1,
+            },
+            right: Box::new(Literal(Number(5.0))),
+        }))),
+        op: Token {
+            token_type: MINUS,
+            lexeme: "-".to_string(),
+            literal: Nil,
+            line: 1,
+        },
+        right: Box::new(Literal(Number(5.0))),
+    };
+    let expected = Type::Number("3.0".parse::<f64>().unwrap());
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.evaluate(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_evalute_binary_2() -> Result<()> {
+    use Expr::*;
+    use TokenType::*;
+    use Type::*;
+    let expr = Binary {
+        left: Box::new(Literal(Number(5.0))),
+        op: Token {
+            token_type: GREATER,
+            lexeme: ">".to_string(),
+            literal: Nil,
+            line: 1,
+        },
+        right: Box::new(Literal(Number(3.0))),
+    };
+    let expected = Type::Bool(true);
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.evaluate(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_evalute_binary_3() -> Result<()> {
+    use Expr::*;
+    use TokenType::*;
+    use Type::*;
+    let expr = Binary {
+        left: Box::new(Literal(Number(6.0))),
+        op: Token {
+            token_type: SLASH,
+            lexeme: "/".to_string(),
+            literal: Nil,
+            line: 1,
+        },
+        right: Box::new(Literal(Number(3.0))),
+    };
+    let expected = Type::Number(2.0);
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.evaluate(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_evalute_binary_4() -> Result<()> {
+    use Expr::*;
+    use TokenType::*;
+    use Type::*;
+    let expr = Binary {
+        left: Box::new(Literal(String("asdf".to_string()))),
+        op: Token {
+            token_type: PLUS,
+            lexeme: "+".to_string(),
+            literal: Nil,
+            line: 1,
+        },
+        right: Box::new(Literal(String("123".to_string()))),
+    };
+    let expected = Type::String("asdf123".to_string());
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.evaluate(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
 }

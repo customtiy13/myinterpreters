@@ -7,6 +7,23 @@ pub enum Type {
     String(String),
 }
 
+impl std::fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn type_helper(t: &Type) -> String {
+            match t {
+                Type::Nil => "".to_string(),
+                Type::Bool(v) => v.to_string(),
+                Type::Number(v) => v.to_string(),
+                Type::String(v) => v.clone(),
+                Type::Any(v) => type_helper(v),
+            }
+        }
+
+        let result = type_helper(self);
+        write!(f, "{}", result)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
     // Single-char tokens.

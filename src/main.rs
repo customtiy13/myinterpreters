@@ -1,10 +1,22 @@
+mod errors;
+mod expr;
+mod interpreter;
+mod parser;
+mod scanner;
+#[cfg(test)]
+mod tests;
+mod tokens;
 use anyhow::Result;
 use clap::Parser;
-use myjlox::parser::Parser as MyParser;
-use myjlox::scanner::Scanner;
+use interpreter::Interpreter;
+use parser::Parser as MyParser;
+use scanner::Scanner;
 use std::fs;
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
+
+#[macro_use]
+extern crate lazy_static;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -60,10 +72,14 @@ fn run(source: &str) -> Result<()> {
     let scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
     println!("{:#?}", &tokens);
+
     let parser = MyParser::new(&tokens);
     let expr = parser.parse();
-
     println!("{:#?}", expr);
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.evaluate(&expr)?;
+    println!("{}", result);
 
     Ok(())
 }
