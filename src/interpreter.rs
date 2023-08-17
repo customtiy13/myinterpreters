@@ -5,15 +5,16 @@ use crate::stmt::Stmt;
 use crate::tokens::{TokenType, Type};
 use anyhow::Result;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct Interpreter {
-    environment: RefCell<Environment>,
+    environment: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
-            environment: RefCell::new(Environment::new()),
+            environment: Rc::new(RefCell::new(Environment::new(None))),
         }
     }
 
@@ -40,7 +41,22 @@ impl Interpreter {
             } => {
                 self.define_var_stmt(var)?;
             }
+            Stmt::Block(vec) => {
+                let new_environment = Environment::new(Some(self.environment.clone()));
+                self.execute_block(vec, new_environment)?;
+            }
         };
+
+        Ok(())
+    }
+
+    fn execute_block(&self, statements: &[Stmt], environment: Environment) -> Result<()> {
+        //let pre_env = &self.environment;
+        // swap in the new environment.
+        let pre_env = self.environment.replace(environment);
+        self.interpret(statements)?;
+        // swap back.
+        self.environment.replace(pre_env);
 
         Ok(())
     }
@@ -52,15 +68,15 @@ impl Interpreter {
         };
 
         self.environment.borrow_mut().define(&name.lexeme, &value);
-        println!("{:?}", self.environment);
+        //println!("{:?}", self.environment);
 
         Ok(())
     }
 
     fn get_var_expr(&self, expr: &Expr) -> Result<Type> {
-        println!("{:?}", self.environment);
+        //println!("{:?}", self.environment);
         let value = match expr {
-            Expr::Var(ref token) => self.environment.borrow().get(token)?.clone(),
+            Expr::Var(ref token) => self.environment.borrow().get(token)?,
             _ => panic!("should not be here."),
         };
 

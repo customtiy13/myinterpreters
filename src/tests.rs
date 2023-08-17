@@ -426,7 +426,7 @@ fn test_environment_var() -> Result<()> {
         initializer: Literal(Number(3.0)),
     }];
 
-    let mut environment = Environment::new();
+    let mut environment = Environment::new(None);
     environment.define("a", &Number(3.0));
     let expected = &RefCell::new(environment);
 
@@ -468,7 +468,7 @@ fn test_environment_assign() -> Result<()> {
         }),
     ];
 
-    let mut environment = Environment::new();
+    let mut environment = Environment::new(None);
     environment.define("a", &Number(2.0));
     let expected = &RefCell::new(environment);
 

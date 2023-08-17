@@ -6,4 +6,5 @@ pub enum Stmt {
     ExprStmt(Expr),
     PrintStmt(Expr),
     VarStmt { name: Token, initializer: Expr },
+    Block(Vec<Stmt>),
 }

@@ -43,7 +43,7 @@ fn main() {
 
 fn run_prompt() -> Result<()> {
     let mut buf = String::new();
-    let mut interpreter = Interpreter::new();
+    let interpreter = Interpreter::new();
     loop {
         print!("> ");
         std::io::stdout().flush().unwrap();
@@ -51,7 +51,7 @@ fn run_prompt() -> Result<()> {
 
         match std::io::stdin().lock().read_line(&mut buf) {
             Ok(n) if n > 0 => {
-                if let Err(e) = run(&mut interpreter, &buf) {
+                if let Err(e) = run(&interpreter, &buf) {
                     eprintln!("{}", e);
                 }
             }
@@ -66,20 +66,21 @@ fn run_prompt() -> Result<()> {
 }
 
 fn run_file(filepath: PathBuf) -> Result<()> {
-    println!("The filename is {:?}", filepath);
+    let interpreter = Interpreter::new();
     let contents = fs::read_to_string(filepath).expect("reading file failed.");
-    //run(&contents) // eval contents.
-    todo!()
+    run(&interpreter, &contents)?; // eval contents.
+                                   //
+    Ok(())
 }
 
-fn run(interpreter: &mut Interpreter, source: &str) -> Result<()> {
+fn run(interpreter: &Interpreter, source: &str) -> Result<()> {
     let scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
     //println!("{:#?}", &tokens);
 
     let parser = MyParser::new(&tokens);
     let stmts = parser.parse()?;
-    println!("{:#?}", stmts);
+    //println!("{:#?}", stmts);
 
     interpreter.interpret(&stmts)?;
 

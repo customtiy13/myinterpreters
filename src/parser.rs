@@ -12,6 +12,8 @@ declaration    -> varDecl
 varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 statement      → exprStmt
                | printStmt ;
+               | block;
+block          → "{" declaration* "}" ;
 exprStmt       → expression ";" ;
 printStmt      → "print" expression ";" ;
 expression     → assignment ;
@@ -86,9 +88,23 @@ impl Parser {
     fn statement(&self) -> Result<Stmt> {
         if self.is_match(&[TokenType::PRINT]) {
             return self.print_stmt();
+        } else if self.is_match(&[TokenType::LeftBrace]) {
+            return self.block_stmt();
         }
 
         self.expr_stmt()
+    }
+
+    fn block_stmt(&self) -> Result<Stmt> {
+        let mut statements = Vec::new();
+
+        while !self.is_end() && !self.check(&TokenType::RightBrace) {
+            statements.push(self.declaration()?)
+        }
+
+        self.consume(TokenType::RightBrace, "Expected '}' after block.")?;
+
+        Ok(Stmt::Block(statements))
     }
 
     fn print_stmt(&self) -> Result<Stmt> {
