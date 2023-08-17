@@ -14,7 +14,9 @@ statement      → exprStmt
                | printStmt ;
 exprStmt       → expression ";" ;
 printStmt      → "print" expression ";" ;
-expression     → equality ;
+expression     → assignment ;
+assignment     → IDENTIFIER "=" assignment
+               | equality ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
@@ -104,7 +106,27 @@ impl Parser {
     }
 
     fn expression(&self) -> Result<Expr> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&self) -> Result<Expr> {
+        let expr = self.equality()?;
+        if self.is_match(&[TokenType::EQUAL]) {
+            let equals = self.previous();
+            let value = self.assignment()?;
+
+            if let Expr::Var(t) = expr {
+                let name: Token = t;
+                return Ok(Expr::Assign {
+                    name,
+                    value: Box::new(value),
+                });
+            } else {
+                return Err(MyError::InvalidAssignmentTargetError(equals.lexeme.clone()).into());
+            }
+        }
+
+        return Ok(expr);
     }
 
     fn equality(&self) -> Result<Expr> {

@@ -2,6 +2,10 @@ use crate::tokens::{Token, Type};
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
+    Assign {
+        name: Token,
+        value: Box<Expr>,
+    },
     Binary {
         left: Box<Expr>,
         op: Token,
@@ -37,6 +41,7 @@ impl std::fmt::Display for Expr {
                 }
                 Var(token) => format!("{}", token.lexeme.clone()),
                 Null => format!(""),
+                Assign { name, value } => format!("{} = {}", name.lexeme, value),
             }
         }
 

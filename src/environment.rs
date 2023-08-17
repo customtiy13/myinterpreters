@@ -5,7 +5,7 @@ use anyhow::Result;
 use std::collections::HashMap;
 
 //TODO
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Environment {
     values: HashMap<String, Type>,
 }
@@ -24,8 +24,18 @@ impl Environment {
     pub fn get(&self, name: &Token) -> Result<&Type> {
         match self.values.get(&name.lexeme) {
             Some(v) => Ok(v),
-            //TODO runtime error
             None => Err(MyError::EnValueNotFoundError(name.lexeme.clone()).into()),
         }
+    }
+
+    pub fn assign(&mut self, name: &Token, value: &Type) -> Result<()> {
+        match self.values.get_mut(&name.lexeme) {
+            Some(v) => *v = value.clone(),
+            None => {
+                return Err(MyError::EnValueNotFoundError(name.lexeme.clone()).into());
+            }
+        }
+
+        Ok(())
     }
 }

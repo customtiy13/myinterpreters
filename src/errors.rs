@@ -5,6 +5,7 @@ pub enum MyError {
     DividedbyzeroError,
     NotImplementedError,
     EnValueNotFoundError(String),
+    InvalidAssignmentTargetError(String),
 }
 
 impl std::fmt::Display for MyError {
@@ -15,6 +16,9 @@ impl std::fmt::Display for MyError {
             MyError::DividedbyzeroError => write!(f, "Divided by zero Error occurred"),
             MyError::NotImplementedError => write!(f, "Not implemented Error occurred"),
             MyError::EnValueNotFoundError(ref err) => write!(f, "Undefined variable {}.", err),
+            MyError::InvalidAssignmentTargetError(ref err) => {
+                write!(f, "Invalid assignment target Error occurred. {:?}", err)
+            }
         }
     }
 }

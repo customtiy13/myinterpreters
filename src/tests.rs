@@ -1,3 +1,4 @@
+use crate::environment::Environment;
 use crate::expr::Expr;
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
@@ -403,6 +404,79 @@ fn test_evalute_binary_4() -> Result<()> {
     let interpreter = Interpreter::new();
     let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_environment_var() -> Result<()> {
+    use std::cell::RefCell;
+    use Expr::*;
+    use Stmt::*;
+    use TokenType::*;
+    use Type::*;
+
+    let stmts = &[VarStmt {
+        name: Token {
+            token_type: IDENTIFIER,
+            lexeme: "a".to_string(),
+            literal: Nil,
+            line: 1,
+        },
+        initializer: Literal(Number(3.0)),
+    }];
+
+    let mut environment = Environment::new();
+    environment.define("a", &Number(3.0));
+    let expected = &RefCell::new(environment);
+
+    let interpreter = Interpreter::new();
+    interpreter.interpret(stmts)?;
+    let result = interpreter.get_environment()?;
+
+    assert_eq!(expected, result);
+
+    Ok(())
+}
+
+#[test]
+fn test_environment_assign() -> Result<()> {
+    use std::cell::RefCell;
+    use Expr::*;
+    use Stmt::*;
+    use TokenType::*;
+    use Type::*;
+
+    let stmts = &[
+        VarStmt {
+            name: Token {
+                token_type: IDENTIFIER,
+                lexeme: "a".to_string(),
+                literal: Nil,
+                line: 1,
+            },
+            initializer: Literal(Number(1.0)),
+        },
+        ExprStmt(Assign {
+            name: Token {
+                token_type: IDENTIFIER,
+                lexeme: "a".to_string(),
+                literal: Nil,
+                line: 1,
+            },
+            value: Box::new(Literal(Number(2.0))),
+        }),
+    ];
+
+    let mut environment = Environment::new();
+    environment.define("a", &Number(2.0));
+    let expected = &RefCell::new(environment);
+
+    let interpreter = Interpreter::new();
+    interpreter.interpret(stmts)?;
+    let result = interpreter.get_environment()?;
+
+    assert_eq!(expected, result);
 
     Ok(())
 }

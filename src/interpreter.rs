@@ -4,19 +4,20 @@ use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::tokens::{TokenType, Type};
 use anyhow::Result;
+use std::cell::RefCell;
 
 pub struct Interpreter {
-    environment: Environment,
+    environment: RefCell<Environment>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
-            environment: Environment::new(),
+            environment: RefCell::new(Environment::new()),
         }
     }
 
-    pub fn interpret(&mut self, stmts: &[Stmt]) -> Result<()> {
+    pub fn interpret(&self, stmts: &[Stmt]) -> Result<()> {
         for stmt in stmts {
             self.evaluate_stmt(stmt)?;
         }
@@ -24,7 +25,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn evaluate_stmt(&mut self, stmt: &Stmt) -> Result<()> {
+    fn evaluate_stmt(&self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::ExprStmt(expr) => {
                 self.evaluate_expr(expr)?;
@@ -44,13 +45,13 @@ impl Interpreter {
         Ok(())
     }
 
-    fn define_var_stmt(&mut self, stmt: &Stmt) -> Result<()> {
+    fn define_var_stmt(&self, stmt: &Stmt) -> Result<()> {
         let (name, value) = match stmt {
             Stmt::VarStmt { name, initializer } => (name, self.evaluate_expr(initializer)?),
             _ => panic!("should not be here."),
         };
 
-        self.environment.define(&name.lexeme, &value);
+        self.environment.borrow_mut().define(&name.lexeme, &value);
         println!("{:?}", self.environment);
 
         Ok(())
@@ -59,7 +60,7 @@ impl Interpreter {
     fn get_var_expr(&self, expr: &Expr) -> Result<Type> {
         println!("{:?}", self.environment);
         let value = match expr {
-            Expr::Var(ref token) => self.environment.get(token)?,
+            Expr::Var(ref token) => self.environment.borrow().get(token)?.clone(),
             _ => panic!("should not be here."),
         };
 
@@ -141,6 +142,11 @@ impl Interpreter {
             }
             Null => Ok(Type::Nil),
             var @ Var(_) => Ok(self.get_var_expr(var)?),
+            Assign { name, value } => {
+                let value = self.evaluate_expr(value)?;
+                self.environment.borrow_mut().assign(&name, &value)?;
+                Ok(value)
+            }
         }
     }
 
@@ -168,5 +174,9 @@ impl Interpreter {
             (Type::Nil, _) | (_, Type::Nil) => false,
             _ => left == right,
         }
+    }
+
+    pub fn get_environment(&self) -> Result<&RefCell<Environment>> {
+        Ok(&self.environment)
     }
 }
