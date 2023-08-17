@@ -1,16 +1,22 @@
+use crate::environment::Environment;
 use crate::errors::MyError;
 use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::tokens::{TokenType, Type};
 use anyhow::Result;
-pub struct Interpreter {}
+
+pub struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter {}
+        Interpreter {
+            environment: Environment::new(),
+        }
     }
 
-    pub fn interpret(&self, stmts: &[Stmt]) -> Result<()> {
+    pub fn interpret(&mut self, stmts: &[Stmt]) -> Result<()> {
         for stmt in stmts {
             self.evaluate_stmt(stmt)?;
         }
@@ -18,7 +24,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn evaluate_stmt(&self, stmt: &Stmt) -> Result<()> {
+    fn evaluate_stmt(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::ExprStmt(expr) => {
                 self.evaluate_expr(expr)?;
@@ -27,10 +33,37 @@ impl Interpreter {
                 let value = self.evaluate_expr(expr)?;
                 println!("{}", value);
             }
-            Stmt::VarStmt { name, initializer } => {}
+            var @ Stmt::VarStmt {
+                name: _,
+                initializer: _,
+            } => {
+                self.define_var_stmt(var)?;
+            }
         };
 
         Ok(())
+    }
+
+    fn define_var_stmt(&mut self, stmt: &Stmt) -> Result<()> {
+        let (name, value) = match stmt {
+            Stmt::VarStmt { name, initializer } => (name, self.evaluate_expr(initializer)?),
+            _ => panic!("should not be here."),
+        };
+
+        self.environment.define(&name.lexeme, &value);
+        println!("{:?}", self.environment);
+
+        Ok(())
+    }
+
+    fn get_var_expr(&self, expr: &Expr) -> Result<Type> {
+        println!("{:?}", self.environment);
+        let value = match expr {
+            Expr::Var(ref token) => self.environment.get(token)?,
+            _ => panic!("should not be here."),
+        };
+
+        Ok(value.clone())
     }
 
     pub fn evaluate_expr(&self, expr: &Expr) -> Result<Type> {
@@ -106,9 +139,8 @@ impl Interpreter {
                     _ => todo!(),
                 }
             }
-            _ => {
-                todo!()
-            }
+            Null => Ok(Type::Nil),
+            var @ Var(_) => Ok(self.get_var_expr(var)?),
         }
     }
 

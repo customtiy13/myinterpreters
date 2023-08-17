@@ -1,3 +1,4 @@
+mod environment;
 mod errors;
 mod expr;
 mod interpreter;
@@ -42,6 +43,7 @@ fn main() {
 
 fn run_prompt() -> Result<()> {
     let mut buf = String::new();
+    let mut interpreter = Interpreter::new();
     loop {
         print!("> ");
         std::io::stdout().flush().unwrap();
@@ -49,7 +51,7 @@ fn run_prompt() -> Result<()> {
 
         match std::io::stdin().lock().read_line(&mut buf) {
             Ok(n) if n > 0 => {
-                if let Err(e) = run(&buf) {
+                if let Err(e) = run(&mut interpreter, &buf) {
                     eprintln!("{}", e);
                 }
             }
@@ -66,10 +68,11 @@ fn run_prompt() -> Result<()> {
 fn run_file(filepath: PathBuf) -> Result<()> {
     println!("The filename is {:?}", filepath);
     let contents = fs::read_to_string(filepath).expect("reading file failed.");
-    run(&contents) // eval contents.
+    //run(&contents) // eval contents.
+    todo!()
 }
 
-fn run(source: &str) -> Result<()> {
+fn run(interpreter: &mut Interpreter, source: &str) -> Result<()> {
     let scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
     //println!("{:#?}", &tokens);
@@ -78,7 +81,6 @@ fn run(source: &str) -> Result<()> {
     let stmts = parser.parse()?;
     println!("{:#?}", stmts);
 
-    let interpreter = Interpreter::new();
     interpreter.interpret(&stmts)?;
 
     Ok(())

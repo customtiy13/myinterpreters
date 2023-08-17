@@ -4,6 +4,7 @@ pub enum MyError {
     CastError(String),
     DividedbyzeroError,
     NotImplementedError,
+    EnValueNotFoundError(String),
 }
 
 impl std::fmt::Display for MyError {
@@ -13,6 +14,7 @@ impl std::fmt::Display for MyError {
             MyError::CastError(ref err) => write!(f, "Casting error occurred {:?}", err),
             MyError::DividedbyzeroError => write!(f, "Divided by zero Error occurred"),
             MyError::NotImplementedError => write!(f, "Not implemented Error occurred"),
+            MyError::EnValueNotFoundError(ref err) => write!(f, "Undefined variable {}.", err),
         }
     }
 }
