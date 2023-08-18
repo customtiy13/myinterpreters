@@ -61,6 +61,11 @@ impl Interpreter {
                     self.evaluate_stmt(else_branch)?;
                 }
             }
+            Stmt::WhileStmt { condition, body } => {
+                while self.is_truthy(&self.evaluate_expr(condition)?) {
+                    self.evaluate_stmt(body)?;
+                }
+            }
             Stmt::NULL => {
                 // skip. nothing to be done.
             }

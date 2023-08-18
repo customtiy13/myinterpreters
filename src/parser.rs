@@ -3,6 +3,7 @@ use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::tokens::{Token, TokenType, Type};
 use anyhow::Result;
+use log::debug;
 use std::cell::RefCell;
 
 /*
@@ -13,7 +14,13 @@ varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 statement      → exprStmt
                | printStmt ;
                | ifStmt
+               | whileStmt
+               | forStmt
+whileStmt      → "while" "(" expression ")" statement ;
 ifStmt         → "if" "(" expression ")" statement
+forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+                 expression? ";"
+                 expression? ")" statement ;
 ( "else" statement )? ;
                | block;
 block          → "{" declaration* "}" ;
@@ -95,11 +102,84 @@ impl Parser {
             return self.if_stmt();
         } else if self.is_match(&[TokenType::PRINT]) {
             return self.print_stmt();
+        } else if self.is_match(&[TokenType::WHILE]) {
+            return self.while_stmt();
+        } else if self.is_match(&[TokenType::FOR]) {
+            return self.for_stmt();
         } else if self.is_match(&[TokenType::LeftBrace]) {
             return self.block_stmt();
         }
 
         self.expr_stmt()
+    }
+
+    fn for_stmt(&self) -> Result<Stmt> {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'for'.");
+        // for (var a = 2; a < 3; a = a + 1)
+
+        // initializer
+        let initializer = if self.is_match(&[TokenType::SEMICOLON]) {
+            Stmt::NULL
+        } else if self.is_match(&[TokenType::VAR]) {
+            debug!("In for stmt: var initializer");
+            self.var_declaration()?
+        } else {
+            self.statement()?
+        };
+
+        // condition.
+        let mut condition = if self.check(&TokenType::SEMICOLON) {
+            Expr::Null
+        } else {
+            self.expression()?
+        };
+        self.consume(TokenType::SEMICOLON, "Expect ';' after loop condition.")?;
+
+        // increment
+        let increment = if self.check(&TokenType::RightParen) {
+            Expr::Null
+        } else {
+            self.expression()?
+        };
+        self.consume(TokenType::RightParen, "Expect ')' after for clauses.")?;
+
+        // body
+        let mut body = self.statement()?;
+
+        // iteriting backward. assuming each one is null.
+        body = match increment {
+            Expr::Null => body, // no increnment.
+            _ => Stmt::Block(vec![body, Stmt::ExprStmt(increment)]),
+        };
+
+        // condition case.
+        if let Expr::Null = condition {
+            condition = Expr::Literal(Type::Bool(true));
+        }
+        body = Stmt::WhileStmt {
+            condition,
+            body: Box::new(body),
+        };
+
+        // initializer case.
+        body = match initializer {
+            Stmt::NULL => body,
+            _ => Stmt::Block(vec![initializer, body]),
+        };
+
+        Ok(body)
+    }
+
+    fn while_stmt(&self) -> Result<Stmt> {
+        self.consume(TokenType::LeftParen, "Expect '(' after while.");
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen, "Expect ')' after if condition.");
+        let body = self.statement()?;
+
+        Ok(Stmt::WhileStmt {
+            condition,
+            body: Box::new(body),
+        })
     }
 
     fn if_stmt(&self) -> Result<Stmt> {

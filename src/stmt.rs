@@ -14,6 +14,10 @@ pub enum Stmt {
         then_branch: Box<Stmt>,
         else_branch: Box<Stmt>,
     },
+    WhileStmt {
+        condition: Expr,
+        body: Box<Stmt>,
+    },
     Block(Vec<Stmt>),
     NULL,
 }
