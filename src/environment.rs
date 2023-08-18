@@ -33,7 +33,10 @@ impl Environment {
 
     pub fn get(&self, name: &Token) -> Result<Type> {
         match self.values.borrow().get(&name.lexeme) {
-            Some(v) => Ok(v.clone()),
+            Some(v) => match v {
+                Type::Nil => Err(MyError::EnValueNotInitError(name.lexeme.clone()).into()),
+                _ => Ok(v.clone()),
+            },
             None => {
                 // enclosing get.
                 if let Some(ref v) = self.enclosing {

@@ -9,12 +9,14 @@ use std::rc::Rc;
 
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
+    is_REPL: RefCell<bool>,
 }
 
 impl Interpreter {
-    pub fn new() -> Self {
+    pub fn new(is_REPL: bool) -> Self {
         Interpreter {
             environment: Rc::new(RefCell::new(Environment::new(None))),
+            is_REPL: RefCell::new(is_REPL),
         }
     }
 
@@ -29,7 +31,10 @@ impl Interpreter {
     fn evaluate_stmt(&self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::ExprStmt(expr) => {
-                self.evaluate_expr(expr)?;
+                let result = self.evaluate_expr(expr)?;
+                if self.is_REPL() {
+                    println!("{}", result);
+                }
             }
             Stmt::PrintStmt(expr) => {
                 let value = self.evaluate_expr(expr)?;
@@ -199,5 +204,9 @@ impl Interpreter {
 
     pub fn get_environment(&self) -> Result<&RefCell<Environment>> {
         Ok(&self.environment)
+    }
+
+    fn is_REPL(&self) -> bool {
+        *self.is_REPL.borrow()
     }
 }

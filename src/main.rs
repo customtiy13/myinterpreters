@@ -43,7 +43,7 @@ fn main() {
 
 fn run_prompt() -> Result<()> {
     let mut buf = String::new();
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(true);
     loop {
         print!("> ");
         std::io::stdout().flush().unwrap();
@@ -66,7 +66,7 @@ fn run_prompt() -> Result<()> {
 }
 
 fn run_file(filepath: PathBuf) -> Result<()> {
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     let contents = fs::read_to_string(filepath).expect("reading file failed.");
     run(&interpreter, &contents)?; // eval contents.
                                    //

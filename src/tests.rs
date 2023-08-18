@@ -249,7 +249,7 @@ fn test_evalute_literal() -> Result<()> {
     let expr = Literal(Type::Number("3".parse::<f64>().unwrap()));
     let expected = Type::Number("3".parse::<f64>().unwrap());
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
@@ -272,7 +272,7 @@ fn test_evalute_unary() -> Result<()> {
     };
     let expected = Type::Number("-3".parse::<f64>().unwrap());
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
@@ -296,7 +296,7 @@ fn test_evalute_grouping() -> Result<()> {
     }));
     let expected = Type::Number("4.0".parse::<f64>().unwrap());
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
@@ -329,7 +329,7 @@ fn test_evalute_binary_1() -> Result<()> {
     };
     let expected = Type::Number("3.0".parse::<f64>().unwrap());
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
@@ -353,7 +353,7 @@ fn test_evalute_binary_2() -> Result<()> {
     };
     let expected = Type::Bool(true);
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
@@ -377,7 +377,7 @@ fn test_evalute_binary_3() -> Result<()> {
     };
     let expected = Type::Number(2.0);
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
@@ -401,7 +401,7 @@ fn test_evalute_binary_4() -> Result<()> {
     };
     let expected = Type::String("asdf123".to_string());
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     let result = interpreter.evaluate_expr(&expr)?;
     assert_eq!(result, expected);
 
@@ -430,7 +430,7 @@ fn test_environment_var() -> Result<()> {
     environment.define("a", &Number(3.0));
     let expected = &RefCell::new(environment);
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     interpreter.interpret(stmts)?;
     let result = interpreter.get_environment()?;
 
@@ -472,7 +472,7 @@ fn test_environment_assign() -> Result<()> {
     environment.define("a", &Number(2.0));
     let expected = &RefCell::new(environment);
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(false);
     interpreter.interpret(stmts)?;
     let result = interpreter.get_environment()?;
 
