@@ -42,21 +42,22 @@ impl Interpreter {
                 self.define_var_stmt(var)?;
             }
             Stmt::Block(vec) => {
-                let new_environment = Environment::new(Some(self.environment.clone()));
-                self.execute_block(vec, new_environment)?;
+                self.execute_block(vec)?;
             }
         };
 
         Ok(())
     }
 
-    fn execute_block(&self, statements: &[Stmt], environment: Environment) -> Result<()> {
-        //let pre_env = &self.environment;
+    fn execute_block(&self, statements: &[Stmt]) -> Result<()> {
+        // [Attention] Be careful when swapping env. Bad things can happen.
+        let new_environment = Environment::new(None);
         // swap in the new environment.
-        let pre_env = self.environment.replace(environment);
+        let pre_env = Rc::new(RefCell::new(self.environment.replace(new_environment)));
+        self.set_env(pre_env.clone());
         self.interpret(statements)?;
         // swap back.
-        self.environment.replace(pre_env);
+        self.environment.swap(&pre_env);
 
         Ok(())
     }
@@ -190,6 +191,10 @@ impl Interpreter {
             (Type::Nil, _) | (_, Type::Nil) => false,
             _ => left == right,
         }
+    }
+
+    fn set_env(&self, environment: Rc<RefCell<Environment>>) {
+        self.environment.borrow_mut().set_env(environment);
     }
 
     pub fn get_environment(&self) -> Result<&RefCell<Environment>> {

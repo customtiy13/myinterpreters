@@ -27,6 +27,10 @@ impl Environment {
             .insert(name.to_string(), value.clone());
     }
 
+    pub fn set_env(&mut self, environment: Rc<RefCell<Environment>>) {
+        self.enclosing = Some(environment.clone());
+    }
+
     pub fn get(&self, name: &Token) -> Result<Type> {
         match self.values.borrow().get(&name.lexeme) {
             Some(v) => Ok(v.clone()),
