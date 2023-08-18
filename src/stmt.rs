@@ -5,6 +5,15 @@ use crate::tokens::Token;
 pub enum Stmt {
     ExprStmt(Expr),
     PrintStmt(Expr),
-    VarStmt { name: Token, initializer: Expr },
+    VarStmt {
+        name: Token,
+        initializer: Expr,
+    },
+    IfStmt {
+        condition: Expr,
+        then_branch: Box<Stmt>,
+        else_branch: Box<Stmt>,
+    },
     Block(Vec<Stmt>),
+    NULL,
 }

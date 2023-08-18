@@ -18,6 +18,11 @@ pub enum Expr {
     },
     Grouping(Box<Expr>),
     Var(Token),
+    Logical {
+        left: Box<Expr>,
+        op: Token,
+        right: Box<Expr>,
+    },
     Null,
 }
 
@@ -42,6 +47,9 @@ impl std::fmt::Display for Expr {
                 Var(token) => format!("{}", token.lexeme.clone()),
                 Null => format!(""),
                 Assign { name, value } => format!("{} = {}", name.lexeme, value),
+                Logical { left, op, right } => {
+                    format!("{} {} {}", left, op.lexeme.clone(), right)
+                }
             }
         }
 

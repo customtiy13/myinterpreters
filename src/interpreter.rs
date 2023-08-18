@@ -49,6 +49,21 @@ impl Interpreter {
             Stmt::Block(vec) => {
                 self.execute_block(vec)?;
             }
+            Stmt::IfStmt {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let expr_result = self.evaluate_expr(condition)?;
+                if self.is_truthy(&expr_result) {
+                    self.evaluate_stmt(then_branch)?;
+                } else {
+                    self.evaluate_stmt(else_branch)?;
+                }
+            }
+            Stmt::NULL => {
+                // skip. nothing to be done.
+            }
         };
 
         Ok(())
@@ -168,6 +183,30 @@ impl Interpreter {
                 let value = self.evaluate_expr(value)?;
                 self.environment.borrow_mut().assign(&name, &value)?;
                 Ok(value)
+            }
+            Logical { left, op, right } => {
+                // short circut.
+                let left = self.evaluate_expr(left)?;
+
+                match op.token_type {
+                    TokenType::OR => {
+                        if self.is_truthy(&left) {
+                            return Ok(left);
+                        } else {
+                            return self.evaluate_expr(right);
+                        }
+                    }
+                    TokenType::AND => {
+                        if !self.is_truthy(&left) {
+                            return Ok(left);
+                        } else {
+                            return self.evaluate_expr(right);
+                        }
+                    }
+                    _ => {
+                        panic!("not logical Operand");
+                    }
+                }
             }
         }
     }

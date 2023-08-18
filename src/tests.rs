@@ -480,3 +480,51 @@ fn test_environment_assign() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_evalute_logical() -> Result<()> {
+    use Expr::*;
+    use TokenType::*;
+    use Type::*;
+    let expr = Logical {
+        left: Box::new(Literal(String("hello".into()))),
+        op: Token {
+            token_type: OR,
+            lexeme: "or".into(),
+            literal: Nil,
+            line: 1,
+        },
+        right: Box::new(Literal(Number(3.0))),
+    };
+    let expected = Type::String("hello".to_string());
+
+    let interpreter = Interpreter::new(false);
+    let result = interpreter.evaluate_expr(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_evalute_logical2() -> Result<()> {
+    use Expr::*;
+    use TokenType::*;
+    use Type::*;
+    let expr = Logical {
+        left: Box::new(Literal(Nil)),
+        op: Token {
+            token_type: OR,
+            lexeme: "or".into(),
+            literal: Nil,
+            line: 1,
+        },
+        right: Box::new(Literal(String("yes".into()))),
+    };
+    let expected = Type::String("yes".to_string());
+
+    let interpreter = Interpreter::new(false);
+    let result = interpreter.evaluate_expr(&expr)?;
+    assert_eq!(result, expected);
+
+    Ok(())
+}

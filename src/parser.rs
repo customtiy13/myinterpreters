@@ -12,13 +12,18 @@ declaration    -> varDecl
 varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 statement      → exprStmt
                | printStmt ;
+               | ifStmt
+ifStmt         → "if" "(" expression ")" statement
+( "else" statement )? ;
                | block;
 block          → "{" declaration* "}" ;
 exprStmt       → expression ";" ;
 printStmt      → "print" expression ";" ;
 expression     → assignment ;
 assignment     → IDENTIFIER "=" assignment
-               | equality ;
+               | logic_or;
+logic_or       → logic_and ( "or" logic_and )* ;
+logic_and      → equality ( "and" equality )* ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
@@ -86,13 +91,34 @@ impl Parser {
     }
 
     fn statement(&self) -> Result<Stmt> {
-        if self.is_match(&[TokenType::PRINT]) {
+        if self.is_match(&[TokenType::IF]) {
+            return self.if_stmt();
+        } else if self.is_match(&[TokenType::PRINT]) {
             return self.print_stmt();
         } else if self.is_match(&[TokenType::LeftBrace]) {
             return self.block_stmt();
         }
 
         self.expr_stmt()
+    }
+
+    fn if_stmt(&self) -> Result<Stmt> {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'if'.");
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen, "Expect ')' after if condition.");
+
+        let then_branch = self.statement()?;
+        let else_branch = if self.is_match(&[TokenType::ELSE]) {
+            self.statement()?
+        } else {
+            Stmt::NULL
+        };
+
+        Ok(Stmt::IfStmt {
+            condition,
+            then_branch: Box::new(then_branch),
+            else_branch: Box::new(else_branch),
+        })
     }
 
     fn block_stmt(&self) -> Result<Stmt> {
@@ -126,7 +152,7 @@ impl Parser {
     }
 
     fn assignment(&self) -> Result<Expr> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
         if self.is_match(&[TokenType::EQUAL]) {
             let equals = self.previous();
             let value = self.assignment()?;
@@ -143,6 +169,38 @@ impl Parser {
         }
 
         return Ok(expr);
+    }
+
+    fn or(&self) -> Result<Expr> {
+        let mut expr = self.and()?;
+
+        while self.is_match(&[TokenType::OR]) {
+            let op = self.previous();
+            let right = self.and()?;
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                op: op.clone(),
+                right: Box::new(right),
+            };
+        }
+
+        Ok(expr)
+    }
+
+    fn and(&self) -> Result<Expr> {
+        let mut expr = self.equality()?;
+
+        while self.is_match(&[TokenType::AND]) {
+            let op = self.previous();
+            let right = self.equality()?;
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                op: op.clone(),
+                right: Box::new(right),
+            };
+        }
+
+        Ok(expr)
     }
 
     fn equality(&self) -> Result<Expr> {
