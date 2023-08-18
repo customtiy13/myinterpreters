@@ -11,6 +11,7 @@ mod tokens;
 use anyhow::Result;
 use clap::Parser;
 use interpreter::Interpreter;
+use log::{debug, error};
 use parser::Parser as MyParser;
 use scanner::Scanner;
 use std::fs;
@@ -27,6 +28,8 @@ struct Cli {
 }
 
 fn main() {
+    env_logger::init();
+
     let cli = Cli::parse();
     match cli.filename {
         None => {
@@ -34,7 +37,7 @@ fn main() {
         }
         Some(filename) => {
             if let Err(e) = run_file(filename) {
-                eprintln!("{}", e);
+                error!("{}", e);
                 std::process::exit(1);
             }
         }
@@ -67,7 +70,7 @@ fn run_prompt() -> Result<()> {
 
 fn run_file(filepath: PathBuf) -> Result<()> {
     let interpreter = Interpreter::new(false);
-    let contents = fs::read_to_string(filepath).expect("reading file failed.");
+    let contents = fs::read_to_string(filepath)?;
     run(&interpreter, &contents)?; // eval contents.
                                    //
     Ok(())
