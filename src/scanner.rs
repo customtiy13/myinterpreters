@@ -21,6 +21,7 @@ lazy_static! {
         ("true", TokenType::TRUE),
         ("var", TokenType::VAR),
         ("while", TokenType::WHILE),
+        ("break", TokenType::BREAK),
     ]);
 }
 

@@ -108,13 +108,21 @@ impl Parser {
             return self.for_stmt();
         } else if self.is_match(&[TokenType::LeftBrace]) {
             return self.block_stmt();
+        } else if self.is_match(&[TokenType::BREAK]) {
+            return self.break_stmt();
         }
 
         self.expr_stmt()
     }
 
+    fn break_stmt(&self) -> Result<Stmt> {
+        self.consume(TokenType::SEMICOLON, "Expect ';' after break.")?;
+
+        Ok(Stmt::Break)
+    }
+
     fn for_stmt(&self) -> Result<Stmt> {
-        self.consume(TokenType::LeftParen, "Expect '(' after 'for'.");
+        self.consume(TokenType::LeftParen, "Expect '(' after 'for'.")?;
         // for (var a = 2; a < 3; a = a + 1)
 
         // initializer
@@ -171,9 +179,9 @@ impl Parser {
     }
 
     fn while_stmt(&self) -> Result<Stmt> {
-        self.consume(TokenType::LeftParen, "Expect '(' after while.");
+        self.consume(TokenType::LeftParen, "Expect '(' after while.")?;
         let condition = self.expression()?;
-        self.consume(TokenType::RightParen, "Expect ')' after if condition.");
+        self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
         let body = self.statement()?;
 
         Ok(Stmt::WhileStmt {
@@ -183,9 +191,9 @@ impl Parser {
     }
 
     fn if_stmt(&self) -> Result<Stmt> {
-        self.consume(TokenType::LeftParen, "Expect '(' after 'if'.");
+        self.consume(TokenType::LeftParen, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
-        self.consume(TokenType::RightParen, "Expect ')' after if condition.");
+        self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
 
         let then_branch = self.statement()?;
         let else_branch = if self.is_match(&[TokenType::ELSE]) {

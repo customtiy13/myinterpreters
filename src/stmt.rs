@@ -19,5 +19,6 @@ pub enum Stmt {
         body: Box<Stmt>,
     },
     Block(Vec<Stmt>),
+    Break,
     NULL,
 }

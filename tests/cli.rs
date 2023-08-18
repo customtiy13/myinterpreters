@@ -55,3 +55,20 @@ fn test_while_loop() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_break_loop() -> Result<()> {
+    let input_file = "tests/input/break_loop.txt";
+    let expected_file = "tests/expected/break_loop.txt";
+
+    let args = &[input_file];
+    let expected = fs::read_to_string(expected_file)?;
+
+    Command::cargo_bin(PROGRAM)?
+        .args(args)
+        .assert()
+        .success()
+        .stdout(expected);
+
+    Ok(())
+}

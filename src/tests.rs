@@ -426,7 +426,7 @@ fn test_environment_var() -> Result<()> {
         initializer: Literal(Number(3.0)),
     }];
 
-    let mut environment = Environment::new(None);
+    let environment = Environment::new(None);
     environment.define("a", &Number(3.0));
     let expected = &RefCell::new(environment);
 

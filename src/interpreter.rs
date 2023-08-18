@@ -10,6 +10,7 @@ use std::rc::Rc;
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
     is_REPL: RefCell<bool>,
+    is_looping: RefCell<bool>,
 }
 
 impl Interpreter {
@@ -17,6 +18,7 @@ impl Interpreter {
         Interpreter {
             environment: Rc::new(RefCell::new(Environment::new(None))),
             is_REPL: RefCell::new(is_REPL),
+            is_looping: RefCell::new(false),
         }
     }
 
@@ -28,7 +30,8 @@ impl Interpreter {
         Ok(())
     }
 
-    fn evaluate_stmt(&self, stmt: &Stmt) -> Result<()> {
+    // Result<is_break>
+    fn evaluate_stmt(&self, stmt: &Stmt) -> Result<bool> {
         match stmt {
             Stmt::ExprStmt(expr) => {
                 let result = self.evaluate_expr(expr)?;
@@ -62,16 +65,25 @@ impl Interpreter {
                 }
             }
             Stmt::WhileStmt { condition, body } => {
-                while self.is_truthy(&self.evaluate_expr(condition)?) {
+                *self.is_looping.borrow_mut() = true;
+                while self.is_truthy(&self.evaluate_expr(condition)?) && *self.is_looping.borrow() {
                     self.evaluate_stmt(body)?;
                 }
+                *self.is_looping.borrow_mut() = false;
+            }
+            Stmt::Break => {
+                if !*self.is_looping.borrow() {
+                    return Err(MyError::BreakNotInLoop.into());
+                }
+                *self.is_looping.borrow_mut() = false;
+                return Ok(true);
             }
             Stmt::NULL => {
                 // skip. nothing to be done.
             }
         };
 
-        Ok(())
+        Ok(false)
     }
 
     fn execute_block(&self, statements: &[Stmt]) -> Result<()> {
@@ -80,7 +92,15 @@ impl Interpreter {
         // swap in the new environment.
         let pre_env = Rc::new(RefCell::new(self.environment.replace(new_environment)));
         self.set_env(pre_env.clone());
-        self.interpret(statements)?;
+
+        for stmt in statements {
+            match self.evaluate_stmt(stmt) {
+                Ok(true) => break,
+                Ok(_) => continue,
+                Err(e) => return Err(e.into()),
+            }
+        }
+
         // swap back.
         self.environment.swap(&pre_env);
 

@@ -7,6 +7,7 @@ pub enum MyError {
     EnValueNotFoundError(String),
     EnValueNotInitError(String),
     InvalidAssignmentTargetError(String),
+    BreakNotInLoop,
 }
 
 impl std::fmt::Display for MyError {
@@ -16,6 +17,7 @@ impl std::fmt::Display for MyError {
             MyError::CastError(ref err) => write!(f, "Casting error occurred {:?}", err),
             MyError::DividedbyzeroError => write!(f, "Divided by zero Error occurred"),
             MyError::NotImplementedError => write!(f, "Not implemented Error occurred"),
+            MyError::BreakNotInLoop => write!(f, "Break must in loop."),
             MyError::EnValueNotFoundError(ref err) => write!(f, "Undefined variable {}.", err),
             MyError::EnValueNotInitError(ref err) => write!(f, "Uninitialized variable {}.", err),
             MyError::InvalidAssignmentTargetError(ref err) => {
