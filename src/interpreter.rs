@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct Interpreter {
+    pub globals: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
     is_REPL: RefCell<bool>,
     is_looping: RefCell<bool>,
@@ -15,8 +16,10 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new(is_REPL: bool) -> Self {
+        let env = Rc::new(RefCell::new(Environment::new(None)));
         Interpreter {
-            environment: Rc::new(RefCell::new(Environment::new(None))),
+            globals: env.clone(),
+            environment: env.clone(),
             is_REPL: RefCell::new(is_REPL),
             is_looping: RefCell::new(false),
         }
@@ -50,7 +53,8 @@ impl Interpreter {
                 self.define_var_stmt(var)?;
             }
             Stmt::Block(vec) => {
-                self.execute_block(vec)?;
+                let new_environment = Environment::new(None);
+                self.execute_block(vec, new_environment)?;
             }
             Stmt::IfStmt {
                 condition,
@@ -94,9 +98,8 @@ impl Interpreter {
         Ok(false)
     }
 
-    fn execute_block(&self, statements: &[Stmt]) -> Result<()> {
+    pub fn execute_block(&self, statements: &[Stmt], new_environment: Environment) -> Result<()> {
         // [Attention] Be careful when swapping env. Bad things can happen.
-        let new_environment = Environment::new(None);
         // swap in the new environment.
         let pre_env = Rc::new(RefCell::new(self.environment.replace(new_environment)));
         self.set_env(pre_env.clone());
@@ -251,8 +254,13 @@ impl Interpreter {
                     .iter()
                     .map(|x| self.evaluate_expr(x))
                     .collect::<Result<Vec<Type>>>()?;
+                let _ = match callee {
+                    Type::Fun(func) => func.call(self, &arguments),
+                    _ => return Err(MyError::NotCallableError.into()),
+                };
 
-                todo!()
+                //TODO
+                Ok(Type::Nil)
             }
         }
     }

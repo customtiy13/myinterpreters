@@ -8,6 +8,7 @@ pub enum MyError {
     EnValueNotInitError(String),
     InvalidAssignmentTargetError(String),
     BreakNotInLoop,
+    NotCallableError,
     MaxArgumentNumError,
 }
 
@@ -19,6 +20,7 @@ impl std::fmt::Display for MyError {
             MyError::DividedbyzeroError => write!(f, "Divided by zero Error occurred"),
             MyError::NotImplementedError => write!(f, "Not implemented Error occurred"),
             MyError::BreakNotInLoop => write!(f, "Break must in loop."),
+            MyError::NotCallableError => write!(f, "Not callable Error occurred."),
             MyError::MaxArgumentNumError => write!(f, "Argument number excedding the limit"),
             MyError::EnValueNotFoundError(ref err) => write!(f, "Undefined variable {}.", err),
             MyError::EnValueNotInitError(ref err) => write!(f, "Uninitialized variable {}.", err),
