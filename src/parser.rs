@@ -6,10 +6,16 @@ use anyhow::Result;
 use log::debug;
 use std::cell::RefCell;
 
+const MAX_ARG_NUM: usize = 255;
+
 /*
 program        → declaration* EOF ;
-declaration    -> varDecl
-               | statement;
+declaration    → funDecl
+               | varDecl
+               | statement ;
+funDecl        → "fun" function ;
+function       → IDENTIFIER "(" parameters? ")" block ;
+parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 statement      → exprStmt
                | printStmt ;
@@ -35,8 +41,9 @@ equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
 factor         → unary ( ( "/" | "*" ) unary )* ;
-unary          → ( "!" | "-" ) unary
-               | primary ;
+unary          → ( "!" | "-" ) unary | call ;
+call           → primary ( "(" arguments? ")" )* ;
+arguments      → expression ( "," expression )* ;
 primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" ;
                | IDENTIFIER
@@ -64,7 +71,9 @@ impl Parser {
     }
 
     fn declaration(&self) -> Result<Stmt> {
-        if self.is_match(&[TokenType::VAR]) {
+        if self.is_match(&[TokenType::FUN]) {
+            return self.function("function");
+        } else if self.is_match(&[TokenType::VAR]) {
             match self.var_declaration() {
                 Err(e) => {
                     //self.synchronize();
@@ -77,6 +86,52 @@ impl Parser {
         } else {
             self.statement()
         }
+    }
+
+    fn function(&self, kind: &str) -> Result<Stmt> {
+        let name = self.consume(
+            TokenType::IDENTIFIER,
+            &format!("{}{}{}", "Expecet ", kind, " name."),
+        )?;
+        self.consume(
+            TokenType::LeftParen,
+            &format!("{}{}{}", "Expect '(' after ", kind, " name."),
+        )?;
+        let mut params = Vec::new();
+
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                if params.len() >= MAX_ARG_NUM {
+                    return Err(MyError::MaxArgumentNumError.into());
+                }
+
+                params.push(
+                    self.consume(TokenType::IDENTIFIER, "Expect parameter name.")?
+                        .clone(),
+                );
+                if !self.is_match(&[TokenType::COMMA]) {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenType::RightParen, "Expect ')' after parameters.")?;
+
+        self.consume(
+            TokenType::LeftBrace,
+            &format!("{}{}{}", "Expect '{' before ", kind, " body."),
+        )?;
+
+        let body = match self.block_stmt()? {
+            Stmt::Block(v) => v,
+            _ => panic!("should not be here."),
+        };
+
+        Ok(Stmt::Function {
+            name: name.clone(),
+            params,
+            body,
+        })
     }
 
     fn var_declaration(&self) -> Result<Stmt> {
@@ -328,7 +383,45 @@ impl Parser {
             });
         }
 
-        self.primary()
+        self.call()
+    }
+
+    fn call(&self) -> Result<Expr> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.is_match(&[TokenType::LeftParen]) {
+                expr = self.finish_call(&expr)?
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&self, expr: &Expr) -> Result<Expr> {
+        let mut arguments = Vec::new();
+        if !self.check(&TokenType::RightParen) {
+            //have arguments.
+            loop {
+                if arguments.len() >= MAX_ARG_NUM {
+                    return Err(MyError::MaxArgumentNumError.into());
+                }
+                arguments.push(self.expression()?);
+                if !self.is_match(&[TokenType::COMMA]) {
+                    // last one.
+                    break;
+                }
+            }
+        }
+        let paren = self.consume(TokenType::RightParen, "Expect ')' after arguments.")?;
+
+        Ok(Expr::Call {
+            callee: Box::new(expr.clone()),
+            paren: paren.clone(),
+            arguments,
+        })
     }
 
     fn primary(&self) -> Result<Expr> {

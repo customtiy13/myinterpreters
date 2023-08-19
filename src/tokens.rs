@@ -1,3 +1,6 @@
+use crate::stmt::LoxFunction;
+use crate::stmt::Stmt;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     Any(Box<Type>),
@@ -5,6 +8,7 @@ pub enum Type {
     Bool(bool),
     Number(f64),
     String(String),
+    Fun(Box<LoxFunction>),
 }
 
 impl std::fmt::Display for Type {
@@ -16,6 +20,12 @@ impl std::fmt::Display for Type {
                 Type::Number(v) => v.to_string(),
                 Type::String(v) => v.clone(),
                 Type::Any(v) => type_helper(v),
+                Type::Fun(v) => match &v.declaration {
+                    Stmt::Function { name, params, body } => {
+                        format!("<fn {}>", name.lexeme)
+                    }
+                    _ => panic!("todo"),
+                },
             }
         }
 

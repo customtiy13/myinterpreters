@@ -1,7 +1,7 @@
 use crate::environment::Environment;
 use crate::errors::MyError;
 use crate::expr::Expr;
-use crate::stmt::Stmt;
+use crate::stmt::{Callable, LoxFunction, Stmt};
 use crate::tokens::{TokenType, Type};
 use anyhow::Result;
 use std::cell::RefCell;
@@ -77,6 +77,14 @@ impl Interpreter {
                 }
                 *self.is_looping.borrow_mut() = false;
                 return Ok(true);
+            }
+            fun @ Stmt::Function { name, params, body } => {
+                let function = Type::Fun(Box::new(LoxFunction {
+                    declaration: fun.clone(),
+                }));
+                self.environment
+                    .borrow_mut()
+                    .define(&name.lexeme, &function);
             }
             Stmt::NULL => {
                 // skip. nothing to be done.
@@ -232,6 +240,19 @@ impl Interpreter {
                         panic!("not logical Operand");
                     }
                 }
+            }
+            Call {
+                callee,
+                paren,
+                arguments,
+            } => {
+                let callee = self.evaluate_expr(callee)?; // string
+                let arguments = arguments
+                    .iter()
+                    .map(|x| self.evaluate_expr(x))
+                    .collect::<Result<Vec<Type>>>()?;
+
+                todo!()
             }
         }
     }

@@ -1,6 +1,6 @@
 use crate::tokens::{Token, Type};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Assign {
         name: Token,
@@ -22,6 +22,11 @@ pub enum Expr {
         left: Box<Expr>,
         op: Token,
         right: Box<Expr>,
+    },
+    Call {
+        callee: Box<Expr>,
+        paren: Token,
+        arguments: Vec<Expr>,
     },
     Null,
 }
@@ -49,6 +54,13 @@ impl std::fmt::Display for Expr {
                 Assign { name, value } => format!("{} = {}", name.lexeme, value),
                 Logical { left, op, right } => {
                     format!("{} {} {}", left, op.lexeme.clone(), right)
+                }
+                Call {
+                    callee,
+                    paren: _,
+                    arguments,
+                } => {
+                    format!("{} ({:?})", callee, arguments)
                 }
             }
         }
